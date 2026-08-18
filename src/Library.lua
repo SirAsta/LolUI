@@ -6,7 +6,7 @@ Library.AddIcons = function(_, Pack, Map)
     Icons.AddIcons(Pack, Map)
 end
 
-Library.CreateWindow = function(Options)
+Library.CreateWindow = function(_, Options)
     Options = Options or {}
 
     local WindowName = Options.Name or "Lol Lib"
