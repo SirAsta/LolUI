@@ -1,0 +1,5510 @@
+
+
+if not LPH_OBFUSCATED then
+    LPH_NO_VIRTUALIZE = function(...) return ... end
+    LPH_NO_UPVALUES = function(...) return ... end
+	LPH_JIT_MAX = function(...) return ... end
+    LPH_CRASH = function() print("CRASHED") end
+end
+
+if LPH_OBFUSCATED and not script_key then
+	LPH_CRASH()
+	return
+end
+
+if script_key and (not LRM_LinkedDiscordID or LRM_LinkedDiscordID == "Unknown") then
+	game:GetService("Players").LocalPlayer:Kick("BIGGIE HUB\nYou must redeem the key in the panel in order to run the script.")
+	return
+end
+
+local LRM_LinkedDiscordID = tonumber(LRM_LinkedDiscordID) or 1
+
+--> Constants
+
+local VERSION = "#I❤️Juice Edition"
+
+local SERVER = "http://biggie.rip/"
+local LIBRARY_ENDPOINT = SERVER .. "DDe5eeXbeMiV8ZIzN00XKS4sGW8rOHv1U5DTgpkvTejq0rRww9YWFypog1yyBY4XCmxNY4UK92c7RTZLsXNuxLv7YvbKRdKkzW2I"
+
+--> Checks
+
+if getgenv().__biggie and getgenv().__biggie.Kill then
+    getgenv().__biggie.Kill()
+end
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+
+--> Services
+
+local NoReference = cloneref or function(x)
+	return x
+end
+
+local CollectionService = NoReference(game:GetService("CollectionService"))
+local ReplicatedStorage = NoReference(game:GetService("ReplicatedStorage"))
+local UserInputService = NoReference(game:GetService("UserInputService"))
+local ContentProvider = NoReference(game:GetService("ContentProvider"))
+local TeleportService = NoReference(game:GetService("TeleportService"))
+local TweenService = NoReference(game:GetService("TweenService"))
+local HttpService = NoReference(game:GetService("HttpService"))
+local RunService = NoReference(game:GetService("RunService"))
+local StarterGui = NoReference(game:GetService("StarterGui"))
+local Players = NoReference(game:GetService("Players"))
+local Debris = NoReference(game:GetService("Debris"))
+local CoreGui = NoReference(game:GetService("CoreGui"))
+local Teams = NoReference(game:GetService("Teams"))
+
+--> Getcustomasset
+
+local Assets = {
+	["biggiehub/assets/help.png"] = "rbxassetid://11432859220",
+	["biggiehub/assets/maximize.png"] = "rbxassetid://11293980310",
+	["biggiehub/assets/unmaximize.png"] = "rbxassetid://11293978098",
+	["biggiehub/assets/minimize.png"] = "rbxassetid://11293980042",
+	["biggiehub/assets/close.png"] = "rbxassetid://11293981586",
+	["biggiehub/assets/user.png"] = "rbxassetid://11295273292",
+	["biggiehub/assets/square.png"] = "rbxassetid://14187686429",
+	["biggiehub/assets/controller.png"] = "rbxassetid://11326876816",
+	["biggiehub/assets/mouse.png"] = "rbxassetid://11432847583",
+	["biggiehub/assets/skull.png"] = "rbxassetid://12967641870",
+	["biggiehub/assets/group.png"] = "rbxassetid://11432832657",
+	["biggiehub/assets/code.png"] = "rbxassetid://11419714821",
+	["biggiehub/assets/config.png"] = "rbxassetid://12966842909",
+	["biggiehub/assets/biggie.png"] = "rbxassetid://121134173616665",
+	["biggiehub/assets/search.png"] = "rbxassetid://11293977875",
+	["biggiehub/assets/arrow.png"] = "rbxassetid://11293981980"
+}
+
+local Supports = function(...)
+	local Prerequisites = {...}
+	local FEnv, GEnv = getfenv(), getgenv()
+
+	local Accessor = setmetatable({}, {
+		__index = function(self, Key)
+			return FEnv[Key] or GEnv[Key]
+		end
+	})
+
+	local Check = function(Prerequisite, Parent)
+		Parent = Parent and Accessor[Parent] or Accessor
+
+		if not Parent then
+			return false
+		end
+
+		return Parent[Prerequisite]
+	end
+
+	for Index, Prerequisite in Prerequisites do
+		local Subprerequisite
+		local Parent
+
+		if string.find(Prerequisite, "%.") then
+			local Split = string.split(Prerequisite, ".")
+
+			Parent = Split[1]
+			Subprerequisite = Split[2]
+		else
+			Subprerequisite = Prerequisite
+		end
+
+		if not Check(Subprerequisite, Parent) then
+			return false
+		end
+	end
+
+	return true
+end
+
+if not Supports("request", "writefile", "readfile", "makefolder", "isfile", "isfolder", "delfile") then
+	return StarterGui:SetCore("SendNotification", {
+		Title = "BIGGIE HUB",
+		Text = "Unsupported executor: " .. identifyexecutor()
+	})
+end
+
+if not Supports("getcustomasset") then
+	local Continue = Instance.new("BindableFunction")
+	local Thread = coroutine.running()
+
+	local Stop
+
+	Continue.OnInvoke = function(Response)
+		if Response == "Abort" then
+			Stop = true
+		end
+
+		coroutine.resume(Thread)
+	end
+
+	StarterGui:SetCore("SendNotification", {
+		Title = "BIGGIE HUB",
+		Text = "Custom assets failed to load, you might be detected.",
+		Duration = math.huge,
+		Button1 = "Continue",
+		Button2 = "Abort",
+		Callback = Continue
+	})
+
+	coroutine.yield()
+
+	if Stop then
+		return
+	end
+end
+
+for _, Folder in {"biggiehub", "biggiehub/assets", "biggiehub/config"} do
+	if not isfolder(Folder) then
+		makefolder(Folder)
+	end
+end
+
+local DecodeBase64 = function(Data)
+	return buffer.tostring(game:GetService("EncodingService"):Base64Decode(buffer.fromstring(Data)))
+end
+
+local Success, Response = pcall(function()
+	for Path in Assets do
+		if not isfile(Path) then
+			local Url = string.gsub(Path, "biggiehub/assets", "https://raw.githubusercontent.com/RFS-cmd/biggie-hub-assets-base64/refs/heads/main")
+			local Data = DecodeBase64(game:HttpGet(Url))
+
+			writefile(Path, Data)
+		end
+	end
+end)
+
+local GetCustomAssetError = false
+local GetCustomAsset = function(Asset)
+	if getcustomasset and isfile(Asset) then
+		local UUID = HttpService:GenerateGUID(false)
+
+		writefile(UUID, readfile(Asset))
+
+		local Success, Result = pcall(function()
+			return getcustomasset(UUID)
+		end)
+
+		delfile(UUID)
+		
+		if Success and Result and Result ~= "" then
+			return Result
+		else
+			GetCustomAssetError = true
+		end
+	end
+
+	return Assets[Asset]
+end
+
+--> Environment
+
+local PLACE_ID = game.PlaceId
+local GAME_ID = game.GameId
+
+local Environment, Config = {
+    Reach = {
+        Box = nil
+    },
+	GKReach = {
+		Box = nil
+	},
+
+	Modules = {},
+
+	root = nil,
+	react = nil,
+	
+	Manipulation = {},
+	--ReactManipulation = {},
+	Prediction = {},
+
+	Cache = {
+		Players = {},
+		Coins = {}
+	},
+
+	Connections = {},
+	Threads = {},
+	Revert = {},
+
+	Hooked = {},
+	Metatable = {}
+}, {}
+
+getgenv().__biggie = {
+	GetCustomAsset = GetCustomAsset,
+   	ClearCache = function(Name)
+		if typeof(Environment.Cache[Name]) == "table" then
+			for Index, Data in Environment.Cache[Name] do
+				if typeof(Data) == "Instance" then
+					Data:Destroy()
+				elseif typeof(Data) == "table" then
+					for _, Object in Data do
+						Object:Destroy()
+					end
+				end
+
+				Environment.Cache[Name][Index] = nil
+			end
+		else
+			Environment.Cache[Name]:Destroy()
+		end
+	end,
+    Kill = function()
+        if Environment.Reach.Box then
+            Environment.Reach.Box:Destroy()
+        end
+
+		if Environment.GKReach.Box then
+            Environment.GKReach.Box:Destroy()
+        end
+
+		for Index, Connection in Environment.Connections do
+			if Connection.Disconnect then
+				Connection:Disconnect()
+			end
+
+			Environment.Connections[Index] = nil
+		end
+
+		for Index, Thread in Environment.Threads do
+			if type(Thread) == "thread" then
+				task.cancel(Thread)
+			end
+
+			Environment.Threads[Index] = nil
+		end
+
+		for Index, Callback in Environment.Revert do
+			task.spawn(Callback)
+		end
+
+		if getgenv().__biggie.ClearCache then
+            for Name, Data in Environment.Cache do
+                getgenv().__biggie.ClearCache(Name)
+            end
+		end
+
+		for Closure in Environment.Hooked do
+            pcall(restorefunction, Closure)
+        end
+
+        for Userdata, Old in Environment.Metatable do
+            pcall(setrawmetatable, Userdata, Old)
+        end
+
+        if Window and Window.Flush then
+			Window:Flush()
+		end
+
+		getgenv().__biggie = nil
+    end
+}
+
+--> Helpers
+
+local Seed = 0x1337 + ((LRM_LinkedDiscordID / 1000000 + 0.5212) or 67.214522) + 0.0133769
+RunService.Heartbeat:Connect(LPH_NO_VIRTUALIZE(function(Delta)
+	Seed = Seed + 0.0133769 + Delta * 100000
+end))
+
+RunService.Heartbeat:Wait()
+
+local CIndex, Rng
+
+do
+	CIndex = 0
+	Rng = LPH_JIT_MAX(function()
+		local Num = Seed
+
+		local IntegerPart = Num - Num % 1
+		local DecimalPart = Num - IntegerPart
+
+		local Values = {}
+		local Index = 1
+
+		while DecimalPart > 0 and Index <= 15 do
+			DecimalPart = DecimalPart * 10
+
+			local Digit1 = DecimalPart - DecimalPart % 1
+			DecimalPart = DecimalPart - Digit1
+			DecimalPart = DecimalPart * 10
+
+			local Digit2 = DecimalPart - DecimalPart % 1
+			DecimalPart = DecimalPart - Digit2
+
+			DecimalPart = DecimalPart * 10
+			local Digit3 = DecimalPart - DecimalPart % 1
+			DecimalPart = DecimalPart - Digit3
+
+			local Value = (Digit1 * 100 + Digit2 * 10 + Digit3)
+			Values[Index] = 20000 + ((Value * 0x6967)) % 20001
+
+			Index = Index + 1
+		end
+
+		CIndex += 1
+
+		if not Values[CIndex] then
+			CIndex = 1
+		end
+
+		return Values[CIndex]
+	end)
+end
+
+local Bxor = function(A, B)
+	local Result = 0
+	local Power = 1
+
+	while A > 0 or B > 0 do
+		local BitA = A % 2
+		local BitB = B % 2
+
+		if BitA ~= BitB then
+			Result = Result + Power
+		end
+
+		A = (A - BitA) / 2
+		B = (B - BitB) / 2
+
+		Power = Power * 2
+	end
+
+	return Result
+end
+
+local Buffer = function(String)
+	local Length = #String
+	local Buffer = buffer.fromstring(String)
+
+	local Characters = {}
+	
+	for Index = 0, Length - 1 do
+		Characters[#Characters + 1] = buffer.readu8(Buffer, Index)
+	end
+	
+	return Characters
+end
+
+local Concat = function(Table)
+	local Result = ""
+
+	for Index, Value in Table do
+		Result = Result .. Value
+	end
+
+	return Result
+end
+
+local EncodeUrl = function(String)
+	local HexLookup = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"}
+	local Characters = Buffer(String)
+	local Result = {}
+	
+	for Index = 1, #Characters do
+		local Byte = Characters[Index]
+		
+		if Byte == 10 then -- \n
+			Result[#Result + 1] = "\r\n"
+		elseif Byte == 32 then -- space
+			Result[#Result + 1] = "+"
+		elseif (Byte >= 48 and Byte <= 57) or -- 0-9
+			(Byte >= 65 and Byte <= 90) or -- A-Z
+			(Byte >= 97 and Byte <= 122) or -- a-z
+			Byte == 45 or Byte == 95 or Byte == 46 or Byte == 126 then -- -_~.
+			Result[#Result + 1] = utf8.char(Byte)
+		else
+			Result[#Result + 1] = "%" .. HexLookup[math.floor(Byte / 16) + 1] .. HexLookup[Byte % 16 + 1]
+		end
+	end
+	
+	return Concat(Result)
+end
+
+local Log = function(...)
+	if getgenv().__debug then
+		print("[BIGGIE]", ...)
+	end
+end
+
+local Error = function(Code)
+	return StarterGui:SetCore("SendNotification", {
+		Title = "BIGGIE HUB",
+		Text = "Failed to load script. Error code: " .. Code,
+		Duration = 60
+	})
+end
+
+local HookfunctionRef, SetrawmetatableRef = hookfunction, setrawmetatable
+
+if Supports("hookfunction", "clonefunction", "newcclosure") then
+	hookfunction = newcclosure(function(Closure, Buffer)
+		Environment.Hooked[Closure] = clonefunction(Closure)
+
+		return HookfunctionRef(Closure, Buffer)
+	end)
+end
+
+if Supports("setrawmetatable", "getrawmetatable", "newcclosure") then
+	setrawmetatable = newcclosure(function(Userdata, Metatable)
+		Environment.Metatable[Userdata] = getrawmetatable(Userdata)
+
+		return SetrawmetatableRef(Userdata, Metatable)
+	end)
+end
+
+local request = (http and http.request or http_request or request)
+
+if not request then
+	return StarterGui:SetCore("SendNotification", {
+		Title = "BIGGIE HUB",
+		Text = "Your executor is unsupported."
+	})
+end
+
+local HTTP_REQUEST = function(Options)
+	return request(setmetatable(Options, {
+		__iter = function()
+			while true do end
+		end,
+		__tostring = function()
+			while true do end
+		end,
+		__len = function()
+			while true do end
+		end,
+		__metatable = "nil"
+	}))
+end
+
+Log("Version: " .. VERSION .. ".")
+
+--> Variables
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Mouse = NoReference(LocalPlayer:GetMouse())
+
+local ProtectedAssets = {
+	"rbxassetid://86461665688191",
+	"rbxassetid://12187365364",
+	"rbxassetid://12187365977"
+}
+
+--> Library
+
+local ScriptKey = script_key or "HitlerBiggz20421xxxx13370000000H---Mossad.gov"
+
+local Packet = Buffer(ScriptKey)
+local RNG = Rng()
+
+for Index, Value in Packet do
+	Packet[Index] = Bxor(Value, RNG) + 0xEFF
+end
+
+table.insert(Packet, 1, RNG)
+
+local String = ""
+
+for Index, Value in Packet do
+	String = String .. utf8.char(Value)
+end
+
+local EncodedKey = EncodeUrl(String)
+local Response = HTTP_REQUEST({
+	Url = LIBRARY_ENDPOINT .. "?a=" .. EncodedKey,
+	Method = "GET",
+	Headers = {
+		biggiehub = "67"
+	}
+})
+
+
+
+local Success, Library = pcall(function()
+	return loadstring(game:HttpGet("https://raw.githubusercontent.com/RFS-cmd/envdumper/refs/heads/main/message%20-%202026-04-09T182107.051.txt"))()
+end)
+
+if not Success then
+	getgenv().__biggie.Kill()
+	return StarterGui:SetCore("SendNotification", {
+		Title = "BIGGIE HUB",
+		Text = "An error has occured when loading the script, please re-execute.",
+		Duration = 10
+	})
+end
+
+--> Seasons
+
+local Month = tonumber(os.date("%m"))
+local Seasonal = ""
+
+if Month == 10 then
+	Seasonal = "🎃"
+elseif Month == 12 then
+	Seasonal = "🎄"
+elseif Month == 6 or Month == 7 or Month == 8 then
+	Seasonal = "☀️"
+end
+
+--> Windowa
+
+Window = Library:CreateWindow({
+    Name = "BIGGIE HUB 4<font color='rgb(150, 150, 150)'>.</font>0 <font color='rgb(255,0,0)'>#I❤️Juice Edition</font>",
+    Parent = CoreGui, --gethui() or game:GetService("CoreGui"):FindFirstChild("RobloxGui") or game:GetService("CoreGui"),
+    AutoShow = true,
+    AutoSave = true
+})
+
+--> Functions
+
+local MessageBox = function(Text, Title)
+	return messagebox and messagebox(Text, Title, 0)
+end
+
+local CreateThread = function(Name, Function, ...)
+	Environment.Threads[Name] = task.defer(Function, ...)
+end
+
+local CancelThread = function(Name)
+	if Environment.Threads[Name] then
+		task.cancel(Environment.Threads[Name])
+		Environment.Threads[Name] = nil
+	end
+end
+
+local RevertSet = function(Object, Key, Value, Raw)
+	local OldValue
+
+	if Raw then
+		OldValue = rawget(Object, Key)
+
+		rawset(Object, Key, Value)
+	else
+		OldValue = Object[Key]
+		Object[Key] = Value
+	end
+
+	table.insert(Environment.Revert, function()
+		if Raw then
+			rawset(Object, Key, OldValue)
+		else
+			Object[Key] = OldValue
+		end
+	end)
+end
+
+local Create = function(Class, Properties)
+    local Object = Instance.new(Class)
+
+    if Properties then
+        for Key, Value in Properties do
+           Object[Key] = Value 
+        end
+    end
+
+    return Object
+end
+
+local fnv1a32 = function(str)
+	local hash = 2166136261
+	for i = 1, #str do
+		hash = bit32.bxor(hash, string.byte(str, i))
+		hash = bit32.band(hash * 16777619, 0xFFFFFFFF)
+	end
+	return string.format("%08x", hash)
+end
+
+local fingerprint = function(func)
+	local success_constants, constants = pcall(getconstants, func)
+	local success_upvalues, upvalues = pcall(getupvalues, func)
+
+	if not success_constants or not success_upvalues then
+		return nil
+	end
+
+	local parts = {}
+
+	if typeof(constants) == "table" then
+		for i, c in constants do
+			local tostr = tostring(c);
+			tostr = string.split(tostr, ": ")[1]
+
+			table.insert(parts, typeof(c) .. ":" .. tostr)
+		end
+	end
+
+	if typeof(upvalues) == "table" then
+		for k, v in pairs(upvalues) do
+			local tostr = tostring(v);
+			tostr = string.split(tostr, ": ")[1]
+
+			table.insert(parts, tostring(k) .. "=" .. typeof(v) .. ":" .. tostr)
+		end
+	end
+
+	return fnv1a32(table.concat(parts, "|"))
+end
+
+local SAVE_LURAPH = function(func)
+	return fingerprint(func)
+end
+
+local LOAD_LURAPH = function(targetHash, constants, upvalues)
+	for _, v in getgc(true) do
+		if typeof(v) == "function" and islclosure(v) and getfenv(v).script then
+			if fingerprint(v) == targetHash then
+				return v
+			end
+		end
+	end
+end
+
+local Spoof = function(Callback, Fenv)
+	local Dummy = nil
+
+	for _, Object in getgc() do
+		if typeof(Object) == "function" and debug.getinfo(Object).source:find("PlayerScripts") and islclosure(Object) then
+			Dummy = getfenv(Object)
+
+			break
+		end
+	end
+
+	if not Dummy then
+		return
+	end
+
+	if Fenv then
+		for Key, Value in Fenv do
+			Dummy[Key] = Value
+		end
+	end
+
+	local Thread = coroutine.running()
+
+	if Supports("setthreadidentity") then
+		setthreadidentity(2)
+	end
+
+	local Async = function()
+		coroutine.resume(Thread, Callback())
+	end
+
+	setfenv(Async, Dummy)
+	setfenv(Callback, Dummy)
+
+	task.defer(Async)
+
+	if Supports("setthreadidentity") then
+		setthreadidentity(8)
+	end
+
+	return coroutine.yield()
+end
+
+--> Games
+
+if GAME_ID == 4851783408 --[[Real Futbol 24]] or GAME_ID == 8824087733 --[[RF Fan Leagues]] or GAME_ID == 7213523982 --[[RFL Hub]] or GAME_ID == 8311518803 --[[MRS]] then
+	Window:Set(false)
+
+	if not Supports(
+		"getconstants",
+		"setconstant",
+		"debug.getinfo",
+		"getrenv",
+		"getrawmetatable",
+		"setrawmetatable",
+		"hookfunction",
+		"clonefunction",
+		"newcclosure",
+		"getupvalues",
+		"getupvalue",
+		"getgc",
+		"firetouchinterest",
+		"checkcaller",
+		"islclosure"
+	) then
+		getgenv().__biggie.Kill()
+
+		return StarterGui:SetCore("SendNotification", {
+			Title = "BIGGIE HUB",
+			Text = "Unsupported executor: " .. identifyexecutor()
+		})
+	end
+
+	-- [DOCS] Here we check if the game has updated since the last time we updated the script
+	-- [DOCS] Its necessary for you to update this whenever you push an update to biggie
+
+	local Update = {
+    [14004668761] = "2026-02-22T11:59:50.3311101Z",
+    [14480394650] = "2024-09-07T14:28:00.62Z",
+    [14480416697] = "2024-07-20T04:44:29.61Z",
+    [14480454827] = "2025-05-30T00:31:14.157Z",
+    [15758062201] = "2026-02-16T13:07:19.237Z",
+    [101575199099568] = "2026-02-18T15:13:36.233Z",
+    [124354554358581] = "2026-02-19T13:05:00.61Z",
+    [70539431141054] = "2026-02-21T15:17:57.8179385Z",
+	[119441792529729] = "2026-03-22T18:38:37.2311124Z"
+}
+
+	if Update[PLACE_ID] then
+		local Success, ProductInfo = pcall(function()
+			return game:GetService("MarketplaceService"):GetProductInfo(PLACE_ID)
+		end)
+
+		if (Success and ProductInfo and (ProductInfo.Updated ~= Update[PLACE_ID])) then
+			local Continue = Instance.new("BindableFunction")
+			local Thread = coroutine.running()
+
+			local Stop
+
+			Continue.OnInvoke = function(Response)
+				if Response == "Abort" then
+					Stop = true
+				end
+
+				coroutine.resume(Thread)
+			end
+
+			StarterGui:SetCore("SendNotification", {
+				Title = "BIGGIE HUB",
+				Text = "The game has updated. Using the script may risk a ban. Continue?",
+				Duration = math.huge,
+				Button1 = "Continue",
+				Button2 = "Abort",
+				Callback = Continue
+			})
+
+			coroutine.yield()
+
+			if Stop then
+				getgenv().__biggie.Kill()
+
+				return
+			end
+		end
+	end
+
+	Window:Set(true)
+
+	local HasNetwork = function(Ball)
+		return Ball:GetAttribute("networkOwner") == LocalPlayer.UserId
+	end
+
+    local CBalls = {}
+	local OnBallAdded = {}
+
+	local AddBall = function(Ball)
+		for Index, Callback in OnBallAdded do
+			task.spawn(Callback, Ball)
+		end
+
+		table.insert(CBalls, Ball)
+
+		-- NOT NEEDED
+		--[[local Mt = table.clone(getrawmetatable(Ball))
+		
+		setreadonly(Mt, false)
+		setrawmetatable(Ball, Mt)
+
+		local old = Mt.__index
+		Mt.__index = function(self, key)
+			local Traceback = debug.traceback()
+
+			if not checkcaller() and (key == "Position" or key == "CFrame") and (Traceback:find("react") and not Traceback:find("getCurveDirection")) then
+				return key == "Position" and LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, -1, -1) or LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(1, -1, 0)
+			end
+
+			return old(self, key)
+		end]]
+	end
+
+    for _, Ball in CollectionService:GetTagged("Ball") do
+        AddBall(Ball)
+    end
+
+    table.insert(Environment.Connections, CollectionService:GetInstanceAddedSignal("Ball"):Connect(AddBall))
+    table.insert(Environment.Connections, CollectionService:GetInstanceRemovedSignal("Ball"):Connect(function(Object)
+		local Index = table.find(CBalls, Object)
+        if Index then table.remove(CBalls, Index) end
+    end))
+
+	--> Ball Manipulation
+
+	local RandomVector = function()
+		return Vector3.one * (math.random(-100, 100) / 10)
+	end
+
+	local GetTeam = function()
+		return LocalPlayer.Team and LocalPlayer.Team.Name and string.sub(LocalPlayer.Team and LocalPlayer.Team.Name, 1, 4) or "Away"
+	end
+
+	local GetOppositeTeam = function()
+		return GetTeam() == "Away" and "Home" or "Away"
+	end
+
+	local GetGoal = function(Team)
+		return workspace.pitch.nets[Team]
+	end
+
+	local GetCenter = function(Goal)
+		return Goal.Collide
+	end
+
+	local GetCurrentFoot = function(IsSetPiece)
+		return IsSetPiece and ReplicatedStorage.network.Profiles[LocalPlayer.UserId].settings.Visual["Strong Foot"].Value or (Environment.rootObject and Environment.rootObject:GetAttribute("currentFoot"))
+	end
+
+	local GetTopCorner = function(Goal, Foot, Revert)
+		return (CFrame.new(Goal.Position, LocalPlayer.Character:GetPivot().LookVector) * CFrame.new((Foot == "L" and Goal.Size.X / 2.2 or -(Goal.Size.X / 2.2)) * 1, Goal.Size.Y / 2.4, 0)).Position
+	end
+
+	local QuadraticBezier = function(T, P0, P1, P2)
+		return (1 - T)^2 * P0 + 2 * (1 - T) * T * P1 + T^2 * P2
+	end
+
+	local ClampBall = function(Ball, Collide, Duration)
+		Duration = Duration or 3
+
+		local WallThickness = 10
+		local Walls = {}
+		
+		local Center = Collide.Position
+		local Size = Collide.Size
+		
+		local CreateWall = function(Name, Size, Position)
+			local Wall = Instance.new("Part")
+			Wall.Name = "ClampWall_" .. Name
+			Wall.Size = Size
+			Wall.Position = Position
+			Wall.Anchored = true
+			Wall.CanCollide = true
+			Wall.Transparency = 1
+			Wall.Parent = workspace
+
+			table.insert(Walls, Wall)
+
+			return Wall
+		end
+		
+		CreateWall("Left", Vector3.new(WallThickness, Size.Y + WallThickness * 2, Size.Z + WallThickness * 2), Center - Vector3.new(Size.X / 2 + WallThickness / 2, 0, 0))
+		CreateWall("Right", Vector3.new(WallThickness, Size.Y + WallThickness * 2, Size.Z + WallThickness * 2), Center + Vector3.new(Size.X / 2 + WallThickness / 2, 0, 0))
+		CreateWall("Bottom", Vector3.new(Size.X + WallThickness * 2, WallThickness, Size.Z + WallThickness * 2), Center - Vector3.new(0, Size.Y / 2 + WallThickness / 2, 0))
+		CreateWall("Top", Vector3.new(Size.X + WallThickness * 2, WallThickness, Size.Z + WallThickness * 2), Center + Vector3.new(0, Size.Y / 2 + WallThickness / 2, 0))
+		CreateWall("Back", Vector3.new(Size.X + WallThickness * 2, Size.Y + WallThickness * 2, WallThickness), Center - Vector3.new(0, 0, Size.Z / 2 + WallThickness / 2))
+		CreateWall("Front", Vector3.new(Size.X + WallThickness * 2, Size.Y + WallThickness * 2, WallThickness), Center + Vector3.new(0, 0, Size.Z / 2 + WallThickness / 2))
+		
+		task.delay(Duration, function()
+			for Index, Wall in Walls do
+				Wall:Destroy()
+			end
+		end)
+		
+		return Walls
+	end
+
+	local IsInCategory = function(Caller, Category)
+		if not Caller then
+			return
+		end
+
+		return string.lower(Caller.Parent.Parent.Name) == string.lower(Category)
+	end
+
+	local Network
+
+	-- [DOCS] Hook "on react" and modify the arguments
+
+	local Manipulate = function(RConfig, Caller)
+		local Vector = RConfig.vector
+		local Ball = RConfig.ball
+
+		if not HasNetwork(Ball) then
+			Network:fetch("networkOwner", RConfig)
+		end
+
+		local IsSetPiece = IsInCategory(Caller, "PlayerScripts")
+
+		if IsInCategory(Caller, "Kick") or IsSetPiece then
+			local Team, Opposite = GetTeam(), GetOppositeTeam()
+			local Goal, TargetGoal = GetGoal(Team), GetGoal((Config.AutoGoalTarget and Config.AutoGoalTarget:Get()[1] == "Own" and Team) or Opposite)
+
+			if Config.AutoGoal and Config.AutoGoal:Get() then
+				local Center = GetCenter(TargetGoal)
+				local Foot = GetCurrentFoot(IsSetPiece)
+				--[[React({
+					ball = Ball,
+					vector = Vector3.zero,
+					character = LocalPlayer.Character
+				})]]
+
+				if Config.AutoGoalDropdown and Config.AutoGoalDropdown:Get() and Config.AutoGoalDropdown:Get()[1] then
+					Environment.Manipulation[Ball] = {
+						Type = Config.AutoGoalDropdown:Get()[1]
+					}
+
+					if Config.AutoGoalDropdown:Get()[1] == "Finesse" then
+						local Side = (Foot == "L") and -1 or 1
+
+						local BallPosition = Ball.Position
+						local TargetPosition = GetTopCorner(Center, Foot) - Vector3.new(0, 10, 0) + Vector3.new(0, Config.AutoGoalFinesseHeight:Get() / 1.25, 0)
+
+						--local Distance = (BallPosition - TargetPosition).Magnitude
+
+						local CurvePower = Config.AutoGoalFinesseCurve:Get()
+						local Time = Config.AutoGoalFinesseTime:Get()
+
+						CurvePower = CurvePower * Side
+
+						local CurveDirection = (TargetPosition - BallPosition).Unit:Cross(Vector3.new(0, 1, 0)).Unit
+						local ControlPoint = ((TargetPosition + BallPosition) / 2) + (CurveDirection * CurvePower) + Vector3.new(0, math.abs(CurvePower), 0)
+                        
+						local Points = {}
+                        local Steps = math.ceil(Time / 0.01)
+
+						for Time = 0, 1.01, 1 / Steps do
+                            local Point = QuadraticBezier(Time, BallPosition, ControlPoint, TargetPosition)
+
+                            table.insert(Points, Point)
+                        end
+
+						local IsCanceled
+						local Tween
+
+						Environment.Manipulation[Ball].Path = Points
+						Environment.Manipulation[Ball].Cancel = function()
+							if Tween then
+								Tween:Cancel()
+							end
+
+							if Environment.Manipulation[Ball].Connection then
+								Environment.Manipulation[Ball].Connection:Disconnect()
+							end
+
+							Environment.Manipulation[Ball] = nil
+							IsCanceled = true
+						end
+
+						Environment.Manipulation[Ball].Connection = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+							if not HasNetwork(Ball) then
+								if Environment.Manipulation[Ball] and Environment.Manipulation[Ball].Cancel then
+									Environment.Manipulation[Ball].Cancel()
+								end
+							end
+						end))
+
+						local Speed = (Points[1] - Points[2]).Magnitude / (Time / Steps)
+
+						for Index = 1, #Points do
+							Tween = TweenService:Create(Ball, TweenInfo.new(Time / Steps, Enum.EasingStyle.Linear), {
+								Position = Points[Index],
+								Rotation = Vector3.one * Index * 30,
+								Velocity = Vector3.zero
+							})
+
+							Tween:Play()
+							Tween.Completed:Wait()
+
+							if IsCanceled then
+								break
+							end
+						end
+
+						if not IsCanceled then
+							if Environment.Manipulation[Ball] and Environment.Manipulation[Ball].Cancel then
+								Environment.Manipulation[Ball].Cancel()
+							end
+
+							RunService.Heartbeat:Wait()
+							Ball.Velocity = (Points[#Points] - Points[#Points - 1]).Unit * math.min(Speed, 700) / 3
+							
+							ClampBall(Ball, Center, 3)
+						end
+
+						return
+					elseif Config.AutoGoalDropdown:Get()[1] == "Trivela" then
+						local Side = (Foot == "L") and 1 or -1
+
+						local BallPosition = Ball.Position
+						local TargetPosition = GetTopCorner(Center, Foot == "L" and "R" or "L") - Vector3.new(0, 10, 0) + Vector3.new(0, Config.AutoGoalTrivelaHeight:Get() / 1.25, 0)
+
+						--local Distance = (BallPosition - TargetPosition).Magnitude
+
+						local CurvePower = Config.AutoGoalTrivelaCurve:Get()
+						local Time = Config.AutoGoalTrivelaTime:Get()
+
+						CurvePower = CurvePower * Side
+
+						local CurveDirection = (TargetPosition - BallPosition).Unit:Cross(Vector3.new(0, 1, 0)).Unit
+						local ControlPoint = ((TargetPosition + BallPosition) / 2) + (CurveDirection * CurvePower) + Vector3.new(0, math.abs(CurvePower), 0)
+                        
+						local Points = {}
+                        local Steps = math.ceil(Time / 0.01)
+
+						for Time = 0, 1.01, 1 / Steps do
+                            local Point = QuadraticBezier(Time, BallPosition, ControlPoint, TargetPosition)
+
+                            table.insert(Points, Point)
+                        end
+
+						local IsCanceled
+						local Tween
+
+						Environment.Manipulation[Ball].Path = Points
+						Environment.Manipulation[Ball].Cancel = function()
+							if Tween then
+								Tween:Cancel()
+							end
+
+							if Environment.Manipulation[Ball].Connection then
+								Environment.Manipulation[Ball].Connection:Disconnect()
+							end
+
+							Environment.Manipulation[Ball] = nil
+							IsCanceled = true
+						end
+ 
+						Environment.Manipulation[Ball].Connection = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+							if not HasNetwork(Ball) then
+								if Environment.Manipulation[Ball] and Environment.Manipulation[Ball].Cancel then
+									Environment.Manipulation[Ball].Cancel()
+								end
+							end
+						end))
+
+						local Speed = (Points[1] - Points[2]).Magnitude / (Time / Steps)
+
+						for Index = 1, #Points do
+							Tween = TweenService:Create(Ball, TweenInfo.new(Time / Steps, Enum.EasingStyle.Linear), {
+								Position = Points[Index],
+								Rotation = Vector3.one * Index * 30,
+								Velocity = Vector3.zero
+							})
+
+							Tween:Play()
+							Tween.Completed:Wait()
+
+							if IsCanceled then
+								break
+							end
+						end
+
+						if not IsCanceled then
+							if Environment.Manipulation[Ball] and Environment.Manipulation[Ball].Cancel then
+								Environment.Manipulation[Ball].Cancel()
+							end
+
+							RunService.Heartbeat:Wait()
+							Ball.Velocity = (Points[#Points] - Points[#Points - 1]).Unit * math.min(Speed, 700) / 3
+
+							ClampBall(Ball, Center, 3)
+						end
+
+						return
+					elseif Config.AutoGoalDropdown:Get()[1] == "Powershot" then
+						local BallPosition = Ball.Position
+						local TargetPosition = GetTopCorner(Center, Foot == "L" and "R" or "L") - Vector3.new(0, 10, 0) + Vector3.new(0, Config.AutoGoalPowershotHeight:Get() / 1.25, 0)
+
+						local ArcPower = Config.AutoGoalPowershotArc:Get()
+						local Time = Config.AutoGoalPowershotTime:Get()
+
+						local Direction = (TargetPosition - BallPosition).Unit
+						local Distance = (TargetPosition - BallPosition).Magnitude
+	
+						local PeakHeight = (Distance / 2) * (ArcPower / 1000)
+						local ControlPoint = BallPosition + Direction * (Distance / 2) + Vector3.new(0, PeakHeight, 0)
+                        
+						local Points = {}
+                        local Steps = math.ceil(Time / 0.01)
+
+						for T = 0, 1.01, 1 / Steps do
+                            local Point = QuadraticBezier(T, BallPosition, ControlPoint, TargetPosition)
+
+                            table.insert(Points, Point)
+                        end
+
+						local IsCanceled
+						local Tween
+
+						Environment.Manipulation[Ball].Path = Points
+						Environment.Manipulation[Ball].Cancel = function()
+							if Tween then
+								Tween:Cancel()
+							end
+
+							if Environment.Manipulation[Ball].Connection then
+								Environment.Manipulation[Ball].Connection:Disconnect()
+							end
+
+							Environment.Manipulation[Ball] = nil
+							IsCanceled = true
+						end
+
+						Environment.Manipulation[Ball].Connection = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+							if not HasNetwork(Ball) then
+								if Environment.Manipulation[Ball] and Environment.Manipulation[Ball].Cancel then
+									Environment.Manipulation[Ball].Cancel()
+								end
+							end
+						end))
+
+						local Speed = (Points[1] - Points[2]).Magnitude / (Time / Steps)
+
+						for Index = 1, #Points do
+							Tween = TweenService:Create(Ball, TweenInfo.new(Time / Steps, Enum.EasingStyle.Linear), {
+								Position = Points[Index],
+								Rotation = Vector3.one * Index * 30,
+								Velocity = Vector3.zero
+							})
+
+							Tween:Play()
+							Tween.Completed:Wait()
+
+							if IsCanceled then
+								break
+							end
+						end
+
+						if not IsCanceled then
+							if Environment.Manipulation[Ball] and Environment.Manipulation[Ball].Cancel then
+								Environment.Manipulation[Ball].Cancel()
+							end
+
+							RunService.Heartbeat:Wait()
+							Ball.Velocity = (Points[#Points] - Points[#Points - 1]).Unit * math.min(Speed, 700) / 3
+							
+							ClampBall(Ball, Center, 3)
+						end
+
+						return
+					end
+				end
+			end
+
+			if Config.InsanePower and Config.InsanePower:Get() then
+				RConfig.vector = Vector3.new(Vector.X * Config.Power:Get(), Vector.Y * Config.Height:Get(), Vector.Z * Config.Power:Get())
+			end
+		end
+
+		return true
+	end
+
+    --> Bypasses
+
+	-- [DOCS] Bypass velocity tampering
+
+	local STask = setmetatable({
+		delay = function(Time, ...)
+			if Time == 0.1 then 
+				return
+			end
+
+			return task.delay(Time, ...)
+		end
+	}, {__index = task})
+
+	-- [DOCS] Bypass vector clamping
+
+	local SMath = setmetatable({
+		min = function(...)
+			local Arguments = {...}
+
+			if #Arguments == 2 then
+				return Arguments[1]
+			end
+
+			return math.min(...)
+		end,
+		max = function(...)
+			local Arguments = {...}
+
+			if #Arguments == 2 then
+				return Arguments[2]
+			end
+
+			return math.max(...)
+		end
+	}, {__index = math})
+
+	-- [DOCS] Get root and network
+
+	local StartTime = os.time()
+	
+	repeat 
+		local Root, Network
+		local GCSnapshot = getgc(true)
+
+		for _, Object in GCSnapshot do
+			if typeof(Object) == "table" then
+				if not Network and rawget(Object, "send") and rawget(Object, "fetch") and rawget(Object, "add") then
+					Network = Object
+				elseif not Root and rawget(Object, "react") and rawget(Object, "gkReact") and rawget(Object, "isSprinting") and rawget(Object, "gkCheck") then
+					Root = Object
+				end
+
+				if Network and Root then break end
+			end
+		end
+
+		GCSnapshot = nil
+
+		if not Root or not Network then
+			task.wait(0.5)
+			continue
+		end
+
+		Environment.Network = Network
+		Environment.root = Root
+
+		Environment.react = rawget(Root, "react")
+		Environment.gkReact = rawget(Root, "gkReact")
+		
+		Environment.catch = rawget(Root, "catch")
+
+		task.wait(0.1)
+	until (Environment.root and Environment.Network) or (os.time() - StartTime) > 10
+
+	-- [DOCS] Get references and root object
+
+    Environment.REnv = getrenv()
+	Environment.rootObject = Spoof(function()
+        return _G._root
+    end)
+
+	Environment.References = Spoof(function()
+		return _G._references
+	end)
+
+	-- 0x0 - No root
+	if not Environment.root then
+		Error("0x0")
+
+		return getgenv().__biggie.Kill()
+	end
+
+	-- 0x1 - No network
+	if not Environment.Network then
+		Error("0x1")
+
+		return getgenv().__biggie.Kill()
+	end
+
+	local ReactEnvironment = getfenv(Environment.react)
+
+	-- [DOCS] Bypass checks
+
+	for Index, Element in getconstants(Environment.react) do
+		if Element == "overlapCheck" then
+			setconstant(Environment.react, Index, "getLookVector")
+
+			table.insert(Environment.Revert, function()
+				setconstant(Environment.react, Index, "overlapCheck")
+			end)
+		elseif Element == "ignoreReactDecline" then
+			setconstant(Environment.react, Index, "ball")
+
+			table.insert(Environment.Revert, function()
+				setconstant(Environment.react, Index, "ignoreReactDecline")
+			end)
+		end
+	end
+	
+	for Index, Element in getconstants(Environment.gkReact) do
+		if Element == "overlapCheck" then
+			setconstant(Environment.gkReact, Index, "getLookVector")
+
+			table.insert(Environment.Revert, function()
+				setconstant(Environment.gkReact, Index, "overlapCheck")
+			end)
+		end
+	end
+
+	-- [DOCS] Old code to prevent issues while using blame goal and such
+	-- [DOCS] Keep this in just incase, it doesnt affect anything
+
+	for Index, Element in Environment.root do
+		if type(Element) == "function" then
+			for Index, Constant in getconstants(Element) do
+				if Constant == "possessor" then
+					setconstant(Element, Index, "networkOwner")
+				end
+			end
+		end
+	end
+	
+	local Limbs = {"RightBoot", "LeftBoot", "Collide", "Head", "UpperTorso"}
+	local GKLimbs = {"RightHand", "LeftHand"}
+
+	Environment.ReactEnvironment = ReactEnvironment
+
+	-- [DOCS] The anticheat stores a local variable of the fenv and checks if its
+	-- [DOCS] equal to the current fenv, by setting __eq to true we automatically
+	-- [DOCS] bypass this check without having to implement a huge bypass
+
+	getrawmetatable(ReactEnvironment).__eq = newcclosure(function()
+		return true
+	end)
+
+	print(getrawmetatable(ReactEnvironment).__metatable)
+
+	-- [DOCS] Add in our spoofed math and task function, and add the assert
+	-- [DOCS] Because the assert directly passes the react config, while
+	-- [DOCS] This has a high detection risk its way better than 
+	-- [DOCS] hooking or modifying react
+
+	setfenv(Environment.react, setmetatable({
+		math = SMath,
+		task = STask,
+		assert = newcclosure(function(...)
+			local Args = {...}
+
+			local RConfig = Args[1]
+			local Condition = Args[2]
+
+			local Caller
+
+			-- [DOCS] Get the caller
+
+			--[[for Index = 1, 20 do
+				pcall(function()
+					local Script = debug.getinfo(Index) and debug.getinfo(Index).func and getfenv(debug.getinfo(Index).func) and rawget(getfenv(debug.getinfo(Index).func), "script")
+
+					if Script.Parent ~= LocalPlayer.PlayerScripts.mechanics and Script:IsDescendantOf(LocalPlayer.PlayerScripts.mechanics) then
+						Caller = Script
+					end
+				end)
+
+				if Caller then break end
+			end]]
+
+		local _tb = debug.traceback():split(".")
+		Caller = _tb[11] and LocalPlayer.PlayerScripts.mechanics:FindFirstChild(_tb[11]:split(":")[1], true) or nil
+
+			if Caller then
+				Log("[REACT] Caller: " .. tostring(Caller) .. ".")
+			end
+
+			--RConfig.ignoreHolding = true
+
+			if not Manipulate(RConfig, Caller) then
+				Log("[REACT] Manipulate aborted react.")
+
+				-- [DOCS] To abort react we can just set limb to nil
+
+				RConfig.limb = nil
+			end
+		end),
+		script = Environment.rootObject, -- [DOCS] Metatable doesnt include these, so we must manually insert them
+		_G = Environment.REnv._G,
+		shared = Environment.REnv.shared
+	}, getrawmetatable(ReactEnvironment)))
+
+	-- [DOCS] Revert back what we did when the script is unloaded
+
+	table.insert(Environment.Revert, function()
+		setfenv(Environment.react, Environment.ReactEnvironment)
+	end)
+
+	--[[if Environment.root.originalLimbSizes then
+		Environment.OriginalSizes = table.clone(Environment.root.originalLimbSizes)
+	end]]
+
+	local ForgeTable = function(Table)
+		return {
+			__tostring = newcclosure(function()
+				return tostring(Table)
+			end),
+			__index = newcclosure(function(_, Key)
+				return Table[Key]
+			end),
+			__newindex = newcclosure(function(_, Key, Value)
+				Table[Key] = Value
+			end),
+			__call = newcclosure(function(_, ...)
+				return Table(...)
+			end),
+			__concat = newcclosure(function(_, Value)
+				return Table .. Value
+			end),
+			__unm = newcclosure(function()
+				return -Table
+			end),
+			__add = newcclosure(function(_, Value)
+				return Table + Value
+			end),
+			__sub = newcclosure(function(_, Value)
+				return Table - Value
+			end),
+			__mul = newcclosure(function(_, Value)
+				return Table * Value
+			end),
+			__div = newcclosure(function(_, Value)
+				return Table / Value
+			end),
+			__idiv = newcclosure(function(_, Value)
+				return math.floor(Table / Value)
+			end),
+			__mod = newcclosure(function(_, Value)
+				return Table % Value
+			end),
+			__pow = newcclosure(function(_, Value)
+				return Table ^ Value
+			end),
+			__eq = newcclosure(function(_, Value)
+				return Table == Value
+			end),
+			__lt = newcclosure(function(_, Value)
+				return Table < Value
+			end),
+			__le = newcclosure(function(_, Value)
+				return Table <= Value
+			end),
+			__len = newcclosure(function()
+				return #Table
+			end),
+			__iter = newcclosure(function()
+				return pairs(Table)
+			end)
+		}
+	end
+
+	-- [DOCS] Since network is encrypted, we make a forger that logs all operations
+	-- [DOCS] Which then we can use to reverse engineer the structure
+
+	local NetworkForgerOk, NetworkForger = pcall(function()
+		return loadstring((function() 
+			local FakeNumber = {}
+			FakeNumber.__index = FakeNumber
+
+			local Memory = {}
+
+			local function GetValue(N)
+				return type(N) == "table" and N.Value or N
+			end
+
+			local function GetExpression(N)
+				if type(N) == "table" then return N.Expression end
+				return Memory[N] or tostring(N)
+			end
+
+			local function New(Value, Expression)
+				local self = setmetatable({}, FakeNumber)
+				self.Value = Value
+				self.Expression = Expression
+				Memory[Value] = Expression
+				return self
+			end
+
+			FakeNumber.New = New
+
+			function FakeNumber:__add(Other)
+				local v = GetValue(Other)
+				return New(self.Value + v, "(" .. self.Expression .. " + " .. GetExpression(Other) .. ")")
+			end
+
+			function FakeNumber:__sub(Other)
+				local v = GetValue(Other)
+				return New(self.Value - v, "(" .. self.Expression .. " - " .. GetExpression(Other) .. ")")
+			end
+
+			function FakeNumber:__mul(Other)
+				local v = GetValue(Other)
+				return New(self.Value * v, "(" .. self.Expression .. " * " .. GetExpression(Other) .. ")")
+			end
+
+			function FakeNumber:__div(Other)
+				local v = GetValue(Other)
+				return New(self.Value / v, "(" .. self.Expression .. " / " .. GetExpression(Other) .. ")")
+			end
+
+			function FakeNumber:__mod(Other)
+				local v = GetValue(Other)
+				return New(self.Value % v, "(" .. self.Expression .. " % " .. GetExpression(Other) .. ")")
+			end
+
+			function FakeNumber:__pow(Other)
+				local v = GetValue(Other)
+				return New(self.Value ^ v, "(" .. self.Expression .. " ^ " .. GetExpression(Other) .. ")")
+			end
+
+			function FakeNumber:__unm()
+				return New(-self.Value, "(-" .. self.Expression .. ")")
+			end
+
+			function FakeNumber:__idiv(Other)
+				local v = GetValue(Other)
+				return New(math.floor(self.Value / v), "(math.floor(" .. self.Expression .. " / " .. GetExpression(Other) .. "))")
+			end
+
+			function FakeNumber:__eq(Other) return self.Value == GetValue(Other) end
+			function FakeNumber:__lt(Other) return self.Value < GetValue(Other) end
+			function FakeNumber:__le(Other) return self.Value <= GetValue(Other) end
+			function FakeNumber:__tostring() return tostring(self.Value) end
+
+			function FakeNumber:GetExpression() return self.Expression end
+			function FakeNumber:GetHistory() return Memory[self.Value] end
+			function FakeNumber.GetMemory() return Memory end
+			function FakeNumber.ClearMemory() Memory = {} end
+
+			local Network = Environment.Network
+
+			local SpoofedTime = 1000
+			local NetworkEnv = getfenv(Network.send)
+
+			-- [DOCS] Check if obfuscated with luraph, if not then its probably
+			-- [DOCS] The old 1000 method (can be changed so its best to use getupvalue)
+
+			if #getconstants(Network.send) < 70 then
+				local Key = getupvalue(Network.send, 3)
+
+				return [[return function()
+		return ]] .. Key .. [[
+	end]]
+			end
+
+			local OldDebug = NetworkEnv.debug
+			local OldPcall = NetworkEnv.pcall
+			local OldWorkspace = NetworkEnv.workspace
+
+			-- [DOCS] Spoof the timestamp network uses so we can reverse engineer easier
+
+			NetworkEnv.workspace = {
+				GetServerTimeNow = function()
+					return New(SpoofedTime, tostring(SpoofedTime))
+				end
+			}
+			
+			-- [DOCS] Bypass env checks
+
+			NetworkEnv.debug = setmetatable({
+				traceback = function()
+					return {
+						gmatch = function()
+							return function() end
+						end
+					}
+				end
+			}, ForgeTable(NetworkEnv.debug))
+
+			NetworkEnv.pcall = function() end
+
+			local Scanned = {}
+
+			local function Scan(T)
+				Scanned[T] = true
+				for _, V in T do
+					if type(V) == "table" and not Scanned[V] then
+						local Results = { Scan(V) }
+						if #Results > 0 then return unpack(Results) end
+					elseif typeof(V) == "Instance" and V:IsA("RemoteEvent") then
+						return T
+					end
+				end
+			end
+
+			-- [DOCS] Hook the fireserver so we can capture the arguments
+
+			local UpvalueTable = Scan(getupvalues(Network.send))
+			local OriginalFireserver = rawget(UpvalueTable, 1)
+			local CapturedArgs
+
+			rawset(UpvalueTable, 1, function(_, ...)
+				CapturedArgs = { ... }
+			end)
+
+			setfenv(1, NetworkEnv)
+
+			-- [DOCS] Send a message
+
+			Network:send([[
+				https://discord.gg/w2dPXefkMu
+			]])
+
+			-- [DOCS] Reverse done changes
+
+			rawset(UpvalueTable, 1, OriginalFireserver)
+
+			NetworkEnv.workspace = OldWorkspace
+			NetworkEnv.debug = OldDebug
+			NetworkEnv.pcall = OldPcall
+
+			local SpoofedTimeStr = tostring(SpoofedTime)
+			local Data = CapturedArgs[1]
+			local Parts = {}
+
+			-- [DOCS] Now the output should look like:
+
+			-- {
+			--	 ["random ass quote"] = Time * 2,
+			--	 ["random ass quote"] = Time * 2,
+			--	 ["random ass quote"] = Time * 2,
+			-- }
+
+			-- [DOCS] Now we check the values of the data and see if we have it
+			-- [DOCS] Stored in our math operations memory
+
+			for Index, Value in Data do
+				Parts[#Parts + 1] = '      ["' .. Index .. '"] = ' .. string.gsub(Memory[Value.Value], SpoofedTimeStr, "Time")
+			end
+
+			-- [DOCS] Now we've basically reconstructed the whole inner workings
+			-- [DOCS] Of the network, next is to format it and return it in a runnable manner
+
+			return "return function(Time)\n    return {\n" .. table.concat(Parts, ",\n") .. "\n    }\nend"
+		end)())()
+	end)
+
+	if not NetworkForgerOk then
+		getgenv().__biggie.Kill()
+
+		return StarterGui:SetCore("SendNotification", {
+			Title = "BIGGIE HUB",
+			Text = "Failed to forge network, please wait until an update.",
+			Duration = 60
+		})
+	end
+
+    --> Functions
+
+	-- [DOCS] Create our custom network
+
+	local GetNetworkKey = function(Time)
+		return NetworkForger(Time or workspace:GetServerTimeNow())
+	end
+
+    Network = {
+		send = function(self, ...)	
+            return self:_send(workspace:GetServerTimeNow(), ...)
+		end,
+		_send = function(self, Time, ...)
+			if not Environment.References then
+				return
+			end
+
+			local RemoteEvent = rawget(Environment.References, "RemoteEvent")
+
+			if not RemoteEvent then
+				return
+			end
+
+			return RemoteEvent:FireServer(GetNetworkKey(Time), ...)
+		end,
+		fetch = function(self, ...)	
+            return self:_fetch(workspace:GetServerTimeNow(), ...)
+		end,
+        _fetch = function(self, Time, ...)
+            if not Environment.References then
+				return
+			end
+
+			local RemoteFunction = rawget(Environment.References, "RemoteFunction")
+
+			if not RemoteFunction then
+				return
+			end
+
+			return RemoteFunction:InvokeServer(GetNetworkKey(Time), ...)
+        end,
+	}
+
+	getgenv().Network = Network
+
+	-- [DOCS] This is a very crucial part
+	-- [DOCS] There are multiple env checks not in catch but in modules like
+	-- [DOCS] Sound and network, therefore we must carefully comb the upvalues and
+	-- [DOCS] Replace any reference to our forged ones, although this could be
+	-- [DOCS] Substuted with an environment spoofer
+ 	
+ 	for Index, Upvalue in getupvalues(Environment.root.catch) do
+		if type(Upvalue) == "table" then
+			if rawget(Upvalue, "send") then
+				table.insert(Environment.Revert, function()
+					setupvalue(Environment.root.catch, Index, Upvalue)
+				end)
+
+				setupvalue(Environment.root.catch, Index, Network)
+			elseif rawget(Upvalue, "load") then
+				for Index2, Upvalue2 in getupvalues(rawget(Upvalue, "load")) do
+					if type(Upvalue2) == "table" then
+						if rawget(Upvalue2, "network") then
+							table.insert(Environment.Revert, function()
+								rawset(Upvalue2, "network", rawget(Upvalue2, "network"))
+							end)
+
+							rawset(Upvalue2, "network", Network)
+						end
+					end
+				end
+			elseif getrawmetatable(Upvalue) and rawget(getrawmetatable(Upvalue), "__newindex") then
+				table.insert(Environment.Revert, function()
+					setupvalue(Environment.root.catch, Index, Upvalue)
+				end)
+
+				setupvalue(Environment.root.catch, Index, Environment.root)
+			end
+		end
+	end
+
+	-- [DOCS] Get network ownership of the ball
+
+    local GetNetwork = function(Ball)
+        if HasNetwork(Ball) then return true end
+
+        local Position = LocalPlayer.Character:GetPivot()
+		local Connection
+
+		Connection = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+			local Ping = LocalPlayer:GetNetworkPing() * 2
+
+			LocalPlayer.Character:PivotTo(CFrame.new(Ball.Position.X + Ball.AssemblyLinearVelocity.X * Ping, Ball.Position.Y - 6, Ball.Position.Z + Ball.AssemblyLinearVelocity.Z * Ping))
+			LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.zero
+		end))
+
+        table.insert(Environment.Connections, Connection)
+
+        local Start = os.time()
+        while getgenv().__biggie and not HasNetwork(Ball) and os.time() - Start < 0.75 do
+            local Time = workspace:GetServerTimeNow()
+            
+            Network:fetch("networkOwner", {
+                checkOffside = true,
+                ball = Ball,
+                limb = LocalPlayer.Character.Head,
+                cframe = LocalPlayer.Character.Head.CFrame,
+                vector = RandomVector(),
+                time = Time
+            })
+
+            task.wait(0.1)
+        end
+
+		Connection:Disconnect()
+
+		LocalPlayer.Character:PivotTo(Position)
+		LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.zero
+
+        return HasNetwork(Ball)
+    end
+
+    --> Tabs
+
+	setthreadidentity(8)
+
+    Window:CreateTab({
+        Name = "Player",
+        Icon = GetCustomAsset("biggiehub/assets/user.png")
+    })
+
+    Window:CreateTab({
+        Name = "Ball",
+        Icon = GetCustomAsset("biggiehub/assets/square.png")
+    })
+
+	Window:CreateTab({
+		Name = "Auto Goal",
+		Icon = GetCustomAsset("biggiehub/assets/controller.png")
+	})
+
+	Window:CreateTab({
+		Name = "GK",
+		Icon = GetCustomAsset("biggiehub/assets/mouse.png")
+	})
+
+	Window:CreateTab({
+		Name = "OP",
+		Icon = GetCustomAsset("biggiehub/assets/skull.png")
+	})
+
+	Window:CreateTab({
+		Name = "Teams",
+		Icon = GetCustomAsset("biggiehub/assets/group.png")
+	})
+
+    --> Buttons
+
+	Window.Tabs.Player:CreateSection({
+		Name = "Player Reach"
+	})
+
+	Config.CompReach = Window.Tabs.Player:CreateToggle({
+		Name = "Comp Reach",
+		Flag = "RF_COMP_REACH",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+    Config.Reach = Window.Tabs.Player:CreateToggle({
+        Name = "Reach",
+        Flag = "RF_REACH",
+        Value = false,
+        Callback = function(Value)
+            if Value then
+                Environment.Reach.Box = Create("BoxHandleAdornment", {
+                    Name = "",
+                    Size = Vector3.one * 1,
+                    Parent = CoreGui,
+                    Transparency = Config.BoxTransparency:Get(),
+                    ZIndex = math.huge,
+                    Adornee = LocalPlayer.Character:WaitForChild("HumanoidRootPart"),
+                    AlwaysOnTop = false,
+                    Color3 = Config.BoxColor:Get()
+                })
+
+				--[[if Environment.root.originalLimbSizes then
+					for _, Limb in Limbs do
+						Environment.root.originalLimbSizes[Limb] = {Config.ReachX:Get(), Config.ReachY:Get(), Config.ReachZ:Get()}
+					end
+				end]]
+            else
+                if Environment.Reach.Box then
+                    Environment.Reach.Box:Destroy()
+                end
+
+				--[[if Environment.root.originalLimbSizes then
+					Environment.root.originalLimbSizes = Environment.OriginalSizes
+				end]]
+            end
+        end
+    })
+
+    Config.ReachX = Window.Tabs.Player:CreateInput({
+        Name = "Reach X",
+        Flag = "RF_REACH_X",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value)
+			--[[if not Config.Reach:Get() or not Environment.root.originalLimbSizes then return end
+
+			for _, Limb in Limbs do
+				Environment.root.originalLimbSizes[Limb][1] = Value
+			end]]
+		end
+    })
+
+    Config.ReachY = Window.Tabs.Player:CreateInput({
+        Name = "Reach Y",
+        Flag = "RF_REACH_Y",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value)
+			--[[if not Config.Reach:Get() or not Environment.root.originalLimbSizes then return end
+
+			for _, Limb in Limbs do
+				Environment.root.originalLimbSizes[Limb][2] = Value
+			end]]
+		end
+    })
+
+    Config.ReachZ = Window.Tabs.Player:CreateInput({
+        Name = "Reach Z",
+        Flag = "RF_REACH_Z",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value)
+			--[[if not Config.Reach:Get() or not Environment.root.originalLimbSizes then return end
+
+			for _, Limb in Limbs do
+				Environment.root.originalLimbSizes[Limb][3] = Value
+			end]]
+		end
+    })
+
+	Config.OffsetX = Window.Tabs.Player:CreateInput({
+        Name = "Offset X",
+        Flag = "RF_OFFSET_X",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.OffsetY = Window.Tabs.Player:CreateInput({
+        Name = "Offset Y",
+        Flag = "RF_OFFSET_Y",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.OffsetZ = Window.Tabs.Player:CreateInput({
+        Name = "Offset Z",
+        Flag = "RF_OFFSET_Z",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.BoxTransparency = Window.Tabs.Player:CreateSlider({
+        Name = "Box Transparency",
+        Flag = "RF_BOX_TRANSPARENCY",
+        Range = {0, 1},
+        Value = 0.9,
+        Increment = 0.05,
+        Callback = function(Value)
+			if Environment.Reach.Box then
+				Environment.Reach.Box.Transparency = Value
+			end
+		end
+    })
+
+	Config.BoxColor = Window.Tabs.Player:CreatePicker({
+		Name = "Box Color",
+		Flag = "RF_BOX_COLOR",
+		Value = {Saturation = 0, Brightness = 1, Hue = 0},
+		Callback = function(Value)
+			if Environment.Reach.Box then
+				Environment.Reach.Box.Color3 = Value
+			end
+		end
+	})
+
+	Window.Tabs.Player:CreateDivider()
+
+	Window.Tabs.Player:CreateSection({
+		Name = "Movement"
+	})
+	
+	Config.PitchTP = Window.Tabs.Player:CreateButton({
+		Name = "Pitch TP",
+		Flag = "RF_PITCH_TP",
+
+        Callback = function()
+        	Network:send("pitchTeleporter")
+        end
+    })
+
+	Config.InfiniteStamina = Window.Tabs.Player:CreateToggle({
+		Name = "Infinite Stamina",
+		Flag = "RF_INF_STAMINA",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+                LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("controllers"):WaitForChild("movementController"):WaitForChild("stamina")
+                
+				Environment.Connections.InfiniteStamina = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+					LocalPlayer.PlayerScripts.controllers.movementController.stamina.Value = 100
+				end))
+			else
+				if Environment.Connections.InfiniteStamina then
+					Environment.Connections.InfiniteStamina:Disconnect()
+					Environment.Connections.InfiniteStamina = nil
+				end
+			end
+		end
+	})
+
+	Config.StreamableInfiniteStamina = Window.Tabs.Player:CreateToggle({
+		Name = "Streamable Infinite Stamina",
+		Flag = "RF_STREAMABLE_INF_STAMINA",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				Environment.Connections.InfStamina = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+					LocalPlayer.PlayerScripts.controllers.movementController.stamina.Value = math.clamp(LocalPlayer.PlayerScripts.controllers.movementController.stamina.Value, 2, 100)
+				end))
+			else
+				if Environment.Connections.InfStamina then
+					Environment.Connections.InfStamina:Disconnect()
+					Environment.Connections.InfStamina = nil
+				end
+			end
+		end
+	})
+
+	Config.SpeedBoost = Window.Tabs.Player:CreateToggle({
+		Name = "Speed Boost",
+		Flag = "RF_SPEED_BOOST",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				repeat task.wait() until Config.SpeedBoost and Config.Speed
+
+				Environment.Connections.SpeedBoost = RunService.RenderStepped:Connect(LPH_JIT_MAX(function(DeltaTime)
+					if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or not LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        return
+                    end
+
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + LocalPlayer.Character.Humanoid.MoveDirection * Config.Speed:Get() * DeltaTime
+				end))
+			else
+				if Environment.Connections.SpeedBoost then
+					Environment.Connections.SpeedBoost:Disconnect()
+					Environment.Connections.SpeedBoost = nil
+				end
+			end
+		end
+	})
+
+	Config.Speed = Window.Tabs.Player:CreateSlider({
+		Name = "Speed",
+		Flag = "RF_SPEED",
+		Range = {0, 5},
+		Increment = 0.05,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.JumpBoost = Window.Tabs.Player:CreateToggle({
+		Name = "Jump Boost",
+		Flag = "RF_JUMP_BOOST",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+                local OnCharacter = function(Character)
+                    if Environment.Connections.JumpBoost then
+						Environment.Connections.JumpBoost:Disconnect()
+						Environment.Connections.JumpBoost = nil
+					end
+
+                    Environment.Connections.JumpBoost = Character:WaitForChild("Humanoid").StateChanged:Connect(function(Old, New)
+                        if New == Enum.HumanoidStateType.Jumping then
+                            LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity = LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity + Vector3.new(0, Config.JumpPower:Get(), 0)
+                        end
+                    end)
+                end
+
+                Environment.Connections.JumpBoostCharacter = LocalPlayer.CharacterAdded:Connect(OnCharacter)
+                OnCharacter(LocalPlayer.Character)
+			else
+				if Environment.Connections.JumpBoost then
+					Environment.Connections.JumpBoost:Disconnect()
+					Environment.Connections.JumpBoost = nil
+				end
+
+				if Environment.Connections.JumpBoostCharacter then
+					Environment.Connections.JumpBoostCharacter:Disconnect()
+					Environment.Connections.JumpBoostCharacter = nil
+				end
+			end
+		end
+	})
+
+	Config.JumpPower = Window.Tabs.Player:CreateSlider({
+		Name = "Jump Power",
+		Flag = "RF_JUMP_POWER",
+		Range = {0, 100},
+		Increment = 1,
+		Value = 10,
+		Callback = function(Value) end
+	})
+
+    --[[Config.NoCooldown = Window.Tabs.Player:CreateToggle({
+		Name = "No Cooldown",
+        Flag = "RF_NO_COOLDOWN",
+        Value = false,
+
+        Callback = function(Value) end
+    })]]
+
+	Window.Tabs.Player:CreateDivider()
+
+	Window.Tabs.Ball:CreateSection({
+		Name = "Insane Power"
+	})
+
+	Config.InsanePower = Window.Tabs.Ball:CreateToggle({
+		Name = "Insane Power",
+		Flag = "RF_INSANE_POWER",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.Power = Window.Tabs.Ball:CreateSlider({
+		Name = "Power",
+		Flag = "RF_POWER",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.Height = Window.Tabs.Ball:CreateSlider({
+		Name = "Height",
+		Flag = "RF_HEIGHT",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.ResetInsanePower = Window.Tabs.Ball:CreateButton({
+		Name = "Reset Insane Power",
+		Flag = "RF_RESET_INSANE_POWER",
+		Callback = function()
+			Config.Power:Set(1)
+			Config.Height:Set(1)
+		end
+	})
+
+	Window.Tabs.Ball:CreateDivider()
+
+	Window.Tabs.Ball:CreateSection({
+		Name = "Ball Teleportation"
+	})
+
+    Config.BringBall = Window.Tabs.Ball:CreateButton({
+        Name = "Bring Ball",
+        Flag = "RF_BRING_BALL",
+        Callback = function()
+            if #CBalls > 0 then
+                local Ball = CBalls[1]
+
+                if GetNetwork(Ball) then
+                    Ball.CFrame = LocalPlayer.Character:GetPivot() * CFrame.new(0, 0, -3)
+                    Ball.Velocity = Vector3.zero
+                end
+            end
+        end
+    })
+	
+    Config.ToBall = Window.Tabs.Ball:CreateButton({
+        Name = "To Ball",
+        Flag = "RF_TO_BALL",
+        Callback = function()
+            if #CBalls > 0 then
+                local Ball = CBalls[1]
+
+				Network:send("partTeleport", Ball)
+				LocalPlayer.Character:PivotTo(Ball:GetPivot())
+            end
+        end
+    })
+
+	Window.Tabs.Ball:CreateDivider()
+
+	Window.Tabs.Ball:CreateSection({
+		Name = "Ball Visuals"
+	})
+
+	local markerTemplate, attachmentTemplate;
+
+    markerTemplate = Instance.new("Part")
+    markerTemplate.Shape = Enum.PartType.Ball
+    markerTemplate.Size = Vector3.new(0.3, 0.3, 0.3)
+    markerTemplate.Anchored = true
+    markerTemplate.CanCollide = false
+    markerTemplate.Material = Enum.Material.Neon
+    markerTemplate.Transparency = 0.7
+    
+    attachmentTemplate = Instance.new("Attachment")
+
+    local lastUpdate = 0
+    local PredictPath = function(ball)
+        local points = {}
+        local currentTime = 0
+        
+        local position = ball.Position
+        local velocity = ball.Velocity
+        local mass = ball.AssemblyMass
+        
+        local bodyVelocity = ball:FindFirstChild("BodyVelocity")
+        local bodyForce = ball:FindFirstChild("BodyForce")
+        local bodyAngularVelocity = ball:FindFirstChild("BodyAngularVelocity")
+
+        local initialBodyVelocity = bodyVelocity and bodyVelocity.Velocity or Vector3.new()
+        local initialBodyForce = bodyForce and bodyForce.Force or Vector3.new()
+        
+        local gravity = Vector3.new(0, -196, 0)
+        local PHYSICS_STEP = 1 / 60
+    
+        while currentTime < 5 do
+            table.insert(points, position)
+            local totalForce = gravity
+
+            if currentTime < 0.3 and bodyVelocity then
+                velocity = initialBodyVelocity
+            end
+            
+            if currentTime < 1 and bodyForce then
+                totalForce = totalForce + initialBodyForce
+            end
+            
+            local acceleration = totalForce / mass
+            velocity = velocity + acceleration * PHYSICS_STEP
+            local newPosition = position + velocity * PHYSICS_STEP
+            
+            position = newPosition
+            currentTime = currentTime + PHYSICS_STEP
+
+            if position.Y < -1 then
+                break
+            end
+        end
+        
+        return points
+    end
+
+    local CreateBeam = function(point1, point2, folder, timeRatio)
+        local att1 = attachmentTemplate:Clone()
+        local att2 = attachmentTemplate:Clone()
+
+        att1.Position = point1
+        att2.Position = point2
+        att1.Parent = workspace.Terrain
+        att2.Parent = workspace.Terrain
+        
+        local beam = Instance.new("Beam")
+        beam.Attachment0 = att1
+        beam.Attachment1 = att2
+        beam.Width0 = 0.2
+        beam.Width1 = 0.2
+        beam.FaceCamera = true
+        
+        local color
+        if timeRatio < 0.3 then
+            color = Color3.new(1, 0, 0) -- when curves not applied yet
+        elseif timeRatio < 0.385 then
+            color = Color3.new(0, 1, 0) -- point where curves applied
+        else
+            color = Color3.new(1, 1, 1) -- rest
+        end
+        
+        beam.Color = ColorSequence.new(color)
+        beam.Transparency = NumberSequence.new(0.5)
+        beam.Parent = folder
+        
+        return {beam = beam, att1 = att1, att2 = att2}
+    end
+
+    local Visualize = LPH_NO_VIRTUALIZE(function()
+        local currentTime = tick()
+
+        if (currentTime - lastUpdate) < 1 / (60 / #CBalls) then
+            return
+        end
+
+        lastUpdate = currentTime
+
+        local currentBalls = table.clone(CBalls)
+
+        for _, v in workspace.Terrain:GetChildren() do
+            if v:IsA("Attachment") or v:IsA("Beam") then
+                v:Destroy()
+            end
+        end
+        
+        for i, ball in currentBalls do
+            if not ball:IsA("BasePart") then
+                continue
+            end
+
+            local points = Environment.Manipulation[ball] and Environment.Manipulation[ball].Path or PredictPath(ball)
+
+            if #points > 1 then
+                for i = 1, #points - 1 do
+                    local timeRatio = (i-1)/(#points-1)
+
+                    CreateBeam(points[i], points[i + 1], workspace.Terrain, timeRatio)
+                end
+            end
+        end
+    end)
+
+	Config.BallPrediction = Window.Tabs.Ball:CreateToggle({
+		Name = "Ball Prediction",
+		Flag = "RF_BALL_PREDICTION",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+                Environment.Connections.Visualize = RunService.Heartbeat:Connect(Visualize)
+            else
+                for Index, Object in workspace.Terrain:GetChildren() do
+                    if Object:IsA("Attachment") or Object:IsA("Beam") then
+                        Object:Destroy()
+                    end
+                end
+
+                if Environment.Connections.Visualize then
+                    Environment.Connections.Visualize:Disconnect()
+                    Environment.Connections.Visualize = nil
+                end
+            end
+		end
+	})
+
+	table.insert(Environment.Revert, function()
+		for Index, Object in workspace.Terrain:GetChildren() do
+			if Object:IsA("Attachment") or Object:IsA("Beam") then
+				Object:Destroy()
+			end
+		end
+	end)
+
+
+Config.BallPredictionEnabled = false
+
+local Physics = {
+    Step = 1/60,
+    MaxTime = 8,
+    Gravity = Vector3.new(0, -196, 0),
+    AirDrag = 0.004,
+    MagnusYCoeff = 0.000012,
+    BvLockTime = 0.9,
+    BfLockTime = 1.0,
+    Restitution = 0.58,
+    BounceFriction = 0.18,
+    BounceMinVel = 1.2,
+    RollDragBase = 0.035,
+    RollDragSpeed = 0.0008,
+    RollStopSpeed = 0.3,
+    CacheVelThreshold = 5,
+    CacheSpinThreshold = 2,
+    CachePosThreshold = 5,
+    CacheInterval = 1/30,
+    FlashDuration = 3
+}
+
+local State = {
+    DiveMarker = Instance.new("Part"),
+    ActiveTween = nil,
+    MarkerFlashing = false,
+    MarkerFlashEnd = 0,
+    LastCrossingPos = nil,
+    LastMarkerUpdate = 0,
+    MarkerPathCache = nil,
+    MarkerLastVel = nil,
+    MarkerLastSpin = nil,
+    MarkerLastPos = nil,
+    CBalls = {}
+}
+
+State.DiveMarker.Shape = Enum.PartType.Ball
+State.DiveMarker.Size = Vector3.new(1.2, 1.2, 1.2)
+State.DiveMarker.Anchored = true
+State.DiveMarker.CanCollide = false
+State.DiveMarker.Material = Enum.Material.Neon
+State.DiveMarker.Color = Color3.new(1, 1, 1)
+State.DiveMarker.Transparency = 1
+State.DiveMarker.Parent = workspace
+
+local TweenInfoSettings = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function TweenTo(TargetPos)
+    if State.ActiveTween then State.ActiveTween:Cancel() end
+    State.ActiveTween = TweenService:Create(State.DiveMarker, TweenInfoSettings, {Position = TargetPos})
+    State.ActiveTween:Play()
+end
+
+for _, Ball in CollectionService:GetTagged("Ball") do
+    table.insert(State.CBalls, Ball)
+end
+CollectionService:GetInstanceAddedSignal("Ball"):Connect(function(Ball)
+    table.insert(State.CBalls, Ball)
+end)
+CollectionService:GetInstanceRemovedSignal("Ball"):Connect(function(Ball)
+    local idx = table.find(State.CBalls, Ball)
+    if idx then table.remove(State.CBalls, idx) end
+end)
+
+local function GetGoalZ()
+    local Side = string.sub(LocalPlayer.Team and LocalPlayer.Team.Name or "", 1, 4)
+    return workspace.pitch.nets[Side].Bolts.Position.Z
+end
+
+local function HideMarker()
+    if State.ActiveTween then State.ActiveTween:Cancel() end
+    State.DiveMarker.Transparency = 1
+    State.MarkerFlashing = false
+    State.LastCrossingPos = nil
+end
+
+local function SimulatePath(Ball)
+    local Pos = Ball.Position
+    local Vel = Ball.Velocity
+    local SpinY = Ball.AssemblyAngularVelocity.Y
+    local Mass = math.max(Ball.AssemblyMass, 1.0)
+    local Radius = Ball.Size.Y / 2
+    local Bv = Ball:FindFirstChild("BodyVelocity")
+    local Bf = Ball:FindFirstChild("BodyForce")
+    local InitBV = Bv and Bv.Velocity or Vector3.zero
+    local InitForce = Bf and Bf.Force or Vector3.zero
+    local RealVelX = Ball.AssemblyLinearVelocity.X
+    local XVelExtra = RealVelX - InitBV.X
+    local Points = {Pos}
+    local t = 0
+    local Rolling = false
+
+    while t < Physics.MaxTime do
+        if not Rolling then
+            local TotalForce = Physics.Gravity
+            if Bf and t < Physics.BfLockTime then TotalForce = TotalForce + InitForce end
+            if Bv and t < Physics.BvLockTime then
+                local LateralForce = -SpinY * math.abs(InitBV.Z) * Physics.MagnusYCoeff
+                XVelExtra = XVelExtra + (LateralForce / Mass) * Physics.Step
+                local YVel = InitBV.Y + (Physics.Gravity.Y / Mass) * t
+                Vel = Vector3.new(InitBV.X + XVelExtra, YVel, InitBV.Z)
+            else
+                local MagnusX = -SpinY * Vel.Z * Physics.MagnusYCoeff
+                TotalForce = TotalForce + Vector3.new(MagnusX, 0, 0) + (-Vel * Physics.AirDrag * Vel.Magnitude)
+                Vel = Vel + (TotalForce / Mass) * Physics.Step
+                SpinY = SpinY * 0.992
+            end
+            Pos = Pos + Vel * Physics.Step
+            t = t + Physics.Step
+            if Pos.Y <= Radius then
+                Pos = Vector3.new(Pos.X, Radius, Pos.Z)
+                XVelExtra = 0
+                if math.abs(Vel.Y) > Physics.BounceMinVel then
+                    Vel = Vector3.new(Vel.X * (1 - Physics.BounceFriction), -Vel.Y * Physics.Restitution, Vel.Z * (1 - Physics.BounceFriction))
+                    SpinY = SpinY * 0.55
+                else
+                    Vel = Vector3.new(Vel.X, 0, Vel.Z)
+                    Rolling = true
+                end
+            end
+        else
+            local HVel = Vector3.new(Vel.X, 0, Vel.Z)
+            local Speed = HVel.Magnitude
+            if Speed < Physics.RollStopSpeed then table.insert(Points, Pos) break end
+            local Drag = Physics.RollDragBase + Physics.RollDragSpeed * Speed
+            Vel = HVel - HVel.Unit * Drag * Speed * Physics.Step
+            Vel = Vector3.new(Vel.X, 0, Vel.Z)
+            Pos = Pos + Vel * Physics.Step
+            t = t + Physics.Step
+            Pos = Vector3.new(Pos.X, Radius, Pos.Z)
+        end
+        table.insert(Points, Pos)
+    end
+
+    return Points
+end
+
+local function FindGoalLineCrossing(Points, GoalZ)
+    if not Points or #Points < 2 then return nil end
+    for i = 1, #Points-1 do
+        local P0, P1 = Points[i], Points[i+1]
+        local DZ = P1.Z - P0.Z
+        if math.abs(DZ) < 0.001 then continue end
+        local t = (GoalZ - P0.Z)/DZ
+        if t >=0 and t <=1 then
+            return Vector3.new(P0.X + (P1.X - P0.X)*t, P0.Y + (P1.Y - P0.Y)*t, GoalZ)
+        end
+    end
+    return nil
+end
+
+local function GetMarkerPath(Ball)
+    local Vel = Ball.Velocity
+    local Spin = Ball.AssemblyAngularVelocity
+    local Pos = Ball.Position
+    local VelChanged = not State.MarkerLastVel or (Vel - State.MarkerLastVel).Magnitude > Physics.CacheVelThreshold
+    local SpinChanged = not State.MarkerLastSpin or (Spin - State.MarkerLastSpin).Magnitude > Physics.CacheSpinThreshold
+    local PosChanged = not State.MarkerLastPos or (Pos - State.MarkerLastPos).Magnitude > Physics.CachePosThreshold
+    if State.MarkerPathCache and not VelChanged and not SpinChanged and not PosChanged then return State.MarkerPathCache end
+    State.MarkerLastVel = Vel
+    State.MarkerLastSpin = Spin
+    State.MarkerLastPos = Pos
+    State.MarkerPathCache = SimulatePath(Ball)
+    return State.MarkerPathCache
+end
+
+local function UpdateDiveMarker()
+    if not Config.BallPredictionEnabled then
+        HideMarker()
+        return
+    end
+
+    local Now = tick()
+    if Now - State.LastMarkerUpdate < Physics.CacheInterval then return end
+    State.LastMarkerUpdate = Now
+
+    if State.MarkerFlashing and Now > State.MarkerFlashEnd then State.MarkerFlashing = false end
+
+    local Ball = State.CBalls[1]
+    if not Ball or not Ball:IsA("BasePart") then HideMarker() return end
+
+    local Ok, GoalZ = pcall(GetGoalZ)
+    if not Ok then HideMarker() return end
+
+    local TowardGoal = (GoalZ < 0 and Ball.Velocity.Z < -1) or (GoalZ > 0 and Ball.Velocity.Z > 1)
+    getgenv().ILoveBig = 0.5
+    local DistToGoal = math.abs(Ball.Position.Z - GoalZ)
+    local Speed = Ball.Velocity.Magnitude
+    local MinSpeed = math.max(5, DistToGoal * getgenv().ILoveBig)
+    if not TowardGoal or Speed < MinSpeed then
+        HideMarker()
+        State.MarkerPathCache = nil
+        State.MarkerLastVel = nil
+        State.MarkerLastSpin = nil
+        State.MarkerLastPos = nil
+        return
+    end
+
+    local Points = GetMarkerPath(Ball)
+    local Crossing = FindGoalLineCrossing(Points, GoalZ)
+    if Crossing then
+        State.LastCrossingPos = Crossing
+        local TargetPos = Vector3.new(Crossing.X, math.max(Crossing.Y, 0.8), GoalZ)
+        State.DiveMarker.Color = Color3.new(1, 1, 1)
+        State.DiveMarker.Transparency = 0.2
+        State.MarkerFlashing = false
+        TweenTo(TargetPos)
+    else
+        if State.LastCrossingPos then
+            local TargetPos = Vector3.new(State.LastCrossingPos.X, math.max(State.LastCrossingPos.Y, 0.8), GoalZ)
+            TweenTo(TargetPos)
+        end
+        if not State.MarkerFlashing then
+            State.MarkerFlashing = true
+            State.MarkerFlashEnd = Now + Physics.FlashDuration
+            State.DiveMarker.Color = Color3.new(1, 0.1, 0.1)
+        end
+        local Pulse = math.abs(math.sin((Now % 0.4)/0.4*math.pi))
+        State.DiveMarker.Transparency = 0.1 + Pulse*0.7
+    end
+end
+
+RunService.Heartbeat:Connect(UpdateDiveMarker)
+
+Config.ToggleBallPrediction = Window.Tabs.Ball:CreateToggle({
+    Name = "Dive Predictor",
+    Flag = "DIVEMARKER_JUICE",
+    Value = false,
+    Callback = function(Value)
+        Config.BallPredictionEnabled = Value
+        if not Value then
+            HideMarker()
+        end
+    end
+})
+	
+	--[[Window.Tabs.Ball:CreateDivider()
+
+	Window.Tabs.Ball:CreateSection({
+		Name = "Goal Manipulation"
+	})
+
+	Config.AntiGoal = Window.Tabs.Ball:CreateToggle({
+		Name = "Anti Goal",
+        Flag = "RF_ANTI_GOAL",
+		Value = false,
+        Callback = function(Value)
+            if Value then
+                local Attributes = {
+                    possessor = 0
+                }
+
+                Environment.Connections.AntiGoal = RunService.Heartbeat:Connect(function()
+                    local Ball = CBalls[1]
+
+                    if not Ball then
+                        return
+                    end
+
+                    for Attribute, Value in Attributes do
+                        if Ball:GetAttribute(Attribute) ~= nil and Ball:GetAttribute(Attribute) ~= Value then
+							Ball:SetAttribute(Attribute, Value)
+                            Network:send("ballAttribute", Ball, Attribute, Value)
+                        end
+                    end
+                end)
+            else
+                if Environment.Connections.AntiGoal then
+                    Environment.Connections.AntiGoal:Disconnect()
+                    Environment.Connections.AntiGoal = nil
+                end
+            end
+        end
+    })]]
+
+    local OldFolder, OutsFolder
+	Config.AntiOuts = Window.Tabs.Ball:CreateToggle({
+		Name = "Anti Outs",
+        Flag = "RF_ANTI_OUTS",
+		Value = false,
+        Callback = function(Value)
+            if Value then
+                for _, Object in workspace.game:GetDescendants() do
+					if Object.Name == "out" then
+						OldFolder = Object.Parent
+						Object.Parent = game:GetService("CoreGui")
+						OutsFolder = Object
+					end
+				end
+            else
+                if OutsFolder then
+					OutsFolder.Parent = OldFolder
+				end
+            end
+        end
+    })
+
+	table.insert(Environment.Revert, function()
+		if OutsFolder then
+			OutsFolder.Parent = OldFolder
+		end
+	end)
+
+	--[[Config.GoalStealer = Window.Tabs.Ball:CreateToggle({
+		Name = "Goal Stealer",
+        Flag = "RF_GOAL_STEALER",
+		Value = false,
+        Callback = function(Value)
+            if Value then
+                local Attributes = {
+                    possessor = LocalPlayer.UserId
+                }
+
+                Environment.Connections.GoalStealer = RunService.Heartbeat:Connect(function()
+                    local Ball = CBalls[1]
+
+                    if not Ball then
+                        return
+                    end
+
+                    for Attribute, Value in Attributes do
+                        if Ball:GetAttribute(Attribute) ~= nil and Ball:GetAttribute(Attribute) ~= Value then
+							Ball:SetAttribute(Attribute, Value)
+                            Network:send("ballAttribute", Ball, Attribute, Value)
+                        end
+                    end
+                end)
+            else
+                if Environment.Connections.GoalStealer then
+                    Environment.Connections.GoalStealer:Disconnect()
+                    Environment.Connections.GoalStealer = nil
+                end
+            end
+        end
+    })
+
+	Config.AssistStealer = Window.Tabs.Ball:CreateToggle({
+		Name = "Assist Stealer",
+        Flag = "RF_ASSIST_STEALER",
+		Value = false,
+        Callback = function(Value)
+            if Value then
+                local Attributes = {
+                    lastPass = LocalPlayer.UserId
+                }
+
+                Environment.Connections.AssistStealer = RunService.Heartbeat:Connect(function()
+                    local Ball = CBalls[1]
+
+                    if not Ball then
+                        return
+                    end
+
+                    for Attribute, Value in Attributes do
+                        if Ball:GetAttribute(Attribute) ~= nil and Ball:GetAttribute(Attribute) ~= Value then
+							Ball:SetAttribute(Attribute, Value)
+                            Network:send("ballAttribute", Ball, Attribute, Value)
+                        end
+                    end
+                end)
+            else
+                if Environment.Connections.AssistStealer then
+                    Environment.Connections.AssistStealer:Disconnect()
+                    Environment.Connections.AssistStealer = nil
+                end
+            end
+        end
+    })]]
+
+	Window.Tabs.Ball:CreateDivider()
+
+	--[[Config.SelectTeam = Window.Tabs.Teams:CreateDropdown({
+		Name = "Select Team",
+		Flag = "RF_SELECT_TEAM",
+		Options = {"Home", "Home GK", "Away", "Away GK"},
+		Callback = function(Value)
+			if Value[1] then
+				Network:fetch("team", Teams:FindFirstChild(Value[1]))
+			end
+		end
+	})]]
+
+	Window.Tabs["Auto Goal"]:CreateSection({
+		Name = "Auto Goal"
+	})
+
+	Config.AutoGoal = Window.Tabs["Auto Goal"]:CreateToggle({
+		Name = "Auto Goal",
+		Flag = "RF_AUTO_GOAL",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalDropdown = Window.Tabs["Auto Goal"]:CreateDropdown({
+		Name = "Auto Goal Method",
+		Flag = "RF_AUTO_GOAL_METHOD",
+		Options = {"Finesse", "Trivela", "Powershot"},
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalDropdown:Select({"Finesse"})
+
+	Config.AutoGoalTarget = Window.Tabs["Auto Goal"]:CreateDropdown({
+		Name = "Auto Goal Target",
+		Flag = "RF_AUTO_GOAL_TARGET",
+		Options = {"Own", "Opposite"},
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalTarget:Select({"Opposite"})
+
+	Window.Tabs["Auto Goal"]:CreateDivider()
+	
+	Window.Tabs["Auto Goal"]:CreateSection({
+		Name = "Auto Goal Finesse"
+	})
+
+	Config.AutoGoalFinesseCurve = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Finesse Curve",
+		Flag = "RF_AUTO_GOAL_FINESSE_CURVE",
+		Range = {0, 100},
+		Increment = 1,
+		Value = 50,
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalFinesseTime = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Finesse Time",
+		Flag = "RF_AUTO_GOAL_FINESSE_TIME",
+		Range = {0.1, 5},
+		Increment = 0.05,
+		Value = 0.7,
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalFinesseHeight = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Finesse Height",
+		Flag = "RF_AUTO_GOAL_FINESSE_HEIGHT",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 10,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs["Auto Goal"]:CreateDivider()
+
+	Window.Tabs["Auto Goal"]:CreateSection({
+		Name = "Auto Goal Trivela"
+	})
+
+	Config.AutoGoalTrivelaCurve = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Trivela Curve",
+		Flag = "RF_AUTO_GOAL_TRIVELA_CURVE",
+		Range = {0, 100},
+		Increment = 1,
+		Value = 50,
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalTrivelaTime = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Trivela Time",
+		Flag = "RF_AUTO_GOAL_TRIVELA_TIME",
+		Range = {0.1, 5},
+		Increment = 0.05,
+		Value = 0.7,
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalTrivelaHeight = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Trivela Height",
+		Flag = "RF_AUTO_GOAL_TRIVELA_HEIGHT",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 10,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs["Auto Goal"]:CreateDivider()
+
+	Window.Tabs["Auto Goal"]:CreateSection({
+		Name = "Auto Goal Powershot"
+	})
+
+	Config.AutoGoalPowershotArc = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Powershot Arc",
+		Flag = "RF_AUTO_GOAL_POWERSHOT_ARC",
+		Range = {0, 100},
+		Increment = 1,
+		Value = 50,
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalPowershotTime = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Powershot Time",
+		Flag = "RF_AUTO_GOAL_POWERSHOT_TIME",
+		Range = {0.1, 5},
+		Increment = 0.05,
+		Value = 0.5,
+		Callback = function(Value) end
+	})
+
+	Config.AutoGoalPowershotHeight = Window.Tabs["Auto Goal"]:CreateSlider({
+		Name = "Powershot Height",
+		Flag = "RF_AUTO_GOAL_POWERSHOT_HEIGHT",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 10,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs["Auto Goal"]:CreateDivider()
+
+	Window.Tabs.Teams:CreateSection({
+		Name = "Team Selection"
+	})
+
+	Config.Home = Window.Tabs.Teams:CreateButton({
+		Name = "Home",
+		Flag = "RF_HOME",
+		Callback = function()
+			Network:fetch("team", Teams:FindFirstChild("Home"))
+		end
+	})
+
+	Config.HomeGK = Window.Tabs.Teams:CreateButton({
+		Name = "Home GK",
+		Flag = "RF_HOME_GK",
+		Callback = function()
+			Network:fetch("team", Teams:FindFirstChild("Home GK"))
+		end
+	})
+
+	Config.Away = Window.Tabs.Teams:CreateButton({
+		Name = "Away",
+		Flag = "RF_AWAY",
+		Callback = function()
+			Network:fetch("team", Teams:FindFirstChild("Away"))
+		end
+	})
+
+	Config.AwayGK = Window.Tabs.Teams:CreateButton({
+		Name = "Away GK",
+		Flag = "RF_AWAY_GK",
+		Callback = function()
+			Network:fetch("team", Teams:FindFirstChild("Away GK"))
+		end
+	})
+
+	Window.Tabs.Teams:CreateDivider()
+
+	Window.Tabs.OP:CreateSection({
+		Name = "Ball Control"
+	})
+
+	Config.Score = Window.Tabs.OP:CreateButton({
+        Name = "Score",
+		Flag = "RF_SCORE",
+        Callback = function()
+			local Net = GetGoal(GetOppositeTeam())
+
+            for _, Ball in CBalls do
+				local Ownership = GetNetwork(Ball)
+
+				if Ownership then
+					Ball.CFrame = Net.Collide.CFrame
+
+					Ball.Velocity = RandomVector()
+					Ball.RotVelocity = RandomVector()
+				end
+            end
+        end
+    })
+
+	Config.AutoScore = Window.Tabs.OP:CreateToggle({
+		Name = "Auto Score",
+		Flag = "RF_AUTO_SCORE",
+		Value = false,
+
+		Callback = function(Value)
+			if Value then
+				CreateThread("AutoScore", function()
+					while Config.AutoScore:Get() do
+						Config.Score.Callback()
+						task.wait(1)
+					end
+				end)
+			else
+				CancelThread("AutoScore")
+			end
+		end
+	})
+
+	Window.Tabs.OP:CreateButton({
+		Name = "Destroy Balls",
+		Flag = "RF_DESTROY_BALLS",
+		Callback = function()
+			local Balls = table.clone(CBalls)
+
+			for Index, Ball in Balls do
+				local Ownership = GetNetwork(Ball)
+
+				if Ownership then
+					Ball.Velocity = Vector3.new(0, -9e9, 0)
+				end
+			end
+		end
+	})
+
+
+	Window.Tabs.OP:CreateDivider()
+	Window.Tabs.OP:CreateSection({
+		Name = "Protection"
+	})
+
+	Config.AntiVotekick = Window.Tabs.OP:CreateToggle({
+		Name = "Anti Votekick",
+		Flag = "RF_ANTI_VOTEKICK",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+                Environment.Connections.AntiVotekick = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+					if LocalPlayer.PlayerGui.main.voteKick.Visible and string.lower(LocalPlayer.PlayerGui.main.voteKick.main.user.Text) == string.lower(LocalPlayer.Name) then
+						TeleportService:TeleportToPlaceInstance(PLACE_ID, game.JobId, LocalPlayer)
+						Environment.Connections.AntiVotekick:Disconnect()
+                    end
+                end))
+            else
+                if Environment.Connections.AntiVotekick then
+					Environment.Connections.AntiVotekick:Disconnect()
+					Environment.Connections.AntiVotekick = nil
+				end
+            end
+		end
+	})
+
+	Window.Tabs.OP:CreateDivider()
+
+    Window.Tabs.GK:CreateSection({
+        Name = "GK Reach"
+    })
+
+    Config.GKReach = Window.Tabs.GK:CreateToggle({
+        Name = "GK Reach",
+        Flag = "RF_GK_REACH",
+        Value = false,
+        Callback = function(Value)
+            if Value then
+                Environment.GKReach.Box = Create("BoxHandleAdornment", {
+                    Name = "",
+                    Size = Vector3.one * 1,
+                    Parent = CoreGui,
+                    Transparency = Config.GKBoxTransparency:Get(),
+                    ZIndex = 10,
+                    Adornee = LocalPlayer.Character:WaitForChild("HumanoidRootPart"),
+                    AlwaysOnTop = false,
+                    Color3 = Config.GKBoxColor:Get()
+                })
+
+				--[[if Environment.root.originalLimbSizes then
+					for _, Limb in GKLimbs do
+						Environment.root.originalLimbSizes[Limb] = {Config.ReachX:Get(), Config.ReachY:Get(), Config.ReachZ:Get()}
+					end
+				end]]
+            else
+                if Environment.GKReach.Box then
+                    Environment.GKReach.Box:Destroy()
+                end
+
+				--[[if Environment.root.originalLimbSizes then
+					Environment.root.originalLimbSizes = Environment.OriginalSizes
+				end]]
+            end
+        end
+    })
+
+	Config.AutoCatch = Window.Tabs.GK:CreateToggle({
+		Name = "Auto Catch",
+		Flag = "RF_AUTO_CATCH",
+		Value = false,
+		Callback = function(Value)
+
+		end
+	})
+
+    Config.GKReachX = Window.Tabs.GK:CreateInput({
+        Name = "GK Reach X",
+        Flag = "RF_GK_REACH_X",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value)
+			--[[if not Config.GKReach:Get() or not Environment.root.originalLimbSizes then return end
+
+			for _, Limb in GKLimbs do
+				Environment.root.originalLimbSizes[Limb][1] = Value
+			end]]
+		end
+    })
+
+    Config.GKReachY = Window.Tabs.GK:CreateInput({
+        Name = "GK Reach Y",
+        Flag = "RF_GK_REACH_Y",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value)
+			--[[if not Config.GKReach:Get() or not Environment.root.originalLimbSizes then return end
+
+			for _, Limb in GKLimbs do
+				Environment.root.originalLimbSizes[Limb][2] = Value
+			end]]
+		end
+    })
+
+    Config.GKReachZ = Window.Tabs.GK:CreateInput({
+        Name = "GK Reach Z",
+        Flag = "RF_GK_REACH_Z",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value)
+			--[[if not Config.GKReach:Get() or not Environment.root.originalLimbSizes then return end
+
+			for _, Limb in GKLimbs do
+				Environment.root.originalLimbSizes[Limb][3] = Value
+			end]]
+		end
+    })
+
+	Config.GKOffsetX = Window.Tabs.GK:CreateInput({
+        Name = "GK Offset X",
+        Flag = "RF_GK_OFFSET_X",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.GKOffsetY = Window.Tabs.GK:CreateInput({
+        Name = "GK Offset Y",
+        Flag = "RF_GK_OFFSET_Y",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.GKOffsetZ = Window.Tabs.GK:CreateInput({
+        Name = "GK Offset Z",
+        Flag = "RF_GK_OFFSET_Z",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.GKBoxTransparency = Window.Tabs.GK:CreateSlider({
+        Name = "GK Box Transparency",
+        Flag = "RF_GK_BOX_TRANSPARENCY",
+        Range = {0, 1},
+        Value = 0.9,
+        Increment = 0.05,
+        Callback = function(Value)
+			if Environment.GKReach.Box then
+				Environment.GKReach.Box.Transparency = Value
+			end
+		end
+    })
+
+	Config.GKBoxColor = Window.Tabs.GK:CreatePicker({
+		Name = "GK Box Color",
+		Flag = "RF_GK_BOX_COLOR",
+		Value = {Saturation = 1, Brightness = 1, Hue = 0},
+		Callback = function(Value)
+			if Environment.GKReach.Box then
+				Environment.GKReach.Box.Color3 = Value
+			end
+		end
+	})
+
+	Window.Tabs.GK:CreateDivider()
+
+	Window.Tabs.GK:CreateSection({
+		Name = "Vector Control"
+	})
+
+	Config.PullVector = Window.Tabs.GK:CreateToggle({
+		Name = "Pull Vector",
+		Flag = "RF_PULL_VECTOR",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+                Environment.Connections.PullVector = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+					if not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+						return
+					end
+					
+					local Ball = CBalls[1]
+
+                    if (Ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < Config.PullDistance:Get() then
+                        local Direction = (Ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Unit
+                        local YVelocity = Ball.Position.Y > LocalPlayer.Character.HumanoidRootPart.Position.Y and Direction.Y * 5 or 0
+
+                        local Force = Vector3.new(Direction.X * 5, YVelocity, Direction.Z * 5)
+                        
+                        LocalPlayer.Character.HumanoidRootPart:ApplyImpulse(Force * Config.PullForce:Get())
+                    end
+                end))
+            else
+                if Environment.Connections.PullVector then
+                    Environment.Connections.PullVector:Disconnect()
+                    Environment.Connections.PullVector = nil
+                end
+            end
+		end
+	})
+
+	Config.PullDistance = Window.Tabs.GK:CreateSlider({
+		Name = "Pull Distance",
+		Flag = "RF_PULL_DISTANCE",
+		Value = 10,
+		Range = {0, 50},
+		Increment = 1,
+		Callback = function(Value) end
+	})
+
+	Config.PullForce = Window.Tabs.GK:CreateSlider({
+		Name = "Pull Force",
+		Flag = "RF_PULL_Force",
+		Value = 2.5,
+		Range = {0, 10},
+		Increment = 0.1,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs.GK:CreateDivider()
+
+	local Balls = CBalls
+
+	CreateThread("Sorter", LPH_NO_VIRTUALIZE(function()
+		while task.wait(0.25) do
+			if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+				continue
+			end
+
+			Balls = CBalls
+			local Origin = LocalPlayer.Character.HumanoidRootPart.Position
+
+			table.sort(Balls, function(a, b)
+				return (a.Position - Origin).Magnitude < (b.Position - Origin).Magnitude
+			end)
+		end
+	end))
+
+	local Params = OverlapParams.new()
+	Params.FilterType = Enum.RaycastFilterType.Include
+
+	local GetBalls = function(Box)
+		Params.FilterDescendantsInstances = Balls
+		return workspace:GetPartBoundsInBox(LocalPlayer.Character.HumanoidRootPart.CFrame * Box.CFrame, Box.Size, Params)
+	end
+
+	local Reach = LPH_JIT_MAX(function()
+		if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			return
+		end
+
+		local PlayerBox = Environment.Reach.Box
+		local GKBox = Environment.GKReach.Box
+		
+		if Config.CompReach:Get() then
+			local Ball = Balls[1]
+
+			if Ball and Ball:GetAttribute("networkOwner") == LocalPlayer.UserId and Config.Reach:Get() ~= false then
+				Config.Reach:Set(false)
+			elseif Ball and Ball:GetAttribute("networkOwner") ~= LocalPlayer.UserId and Config.Reach:Get() ~= true then
+				Config.Reach:Set(true)
+			end
+		end
+
+		if Config.Reach:Get() and PlayerBox then
+			PlayerBox.Adornee = LocalPlayer.Character.HumanoidRootPart
+			PlayerBox.Size = Vector3.new(Config.ReachX:Get(), Config.ReachY:Get(), Config.ReachZ:Get())
+			PlayerBox.CFrame = CFrame.new(Config.OffsetX:Get(), Config.OffsetY:Get(), Config.OffsetZ:Get())
+
+			local Ball = GetBalls(PlayerBox)[1]
+
+			if Ball then
+				for _, Limb in Limbs do
+					if LocalPlayer.Character:FindFirstChild(Limb) then
+						firetouchinterest(LocalPlayer.Character[Limb], Ball, 0)
+						firetouchinterest(LocalPlayer.Character[Limb], Ball, 1)
+					end
+				end
+			end
+		end
+
+		if Config.GKReach:Get() and GKBox then
+			GKBox.Adornee = LocalPlayer.Character.HumanoidRootPart
+			GKBox.Size = Vector3.new(Config.GKReachX:Get(), Config.GKReachY:Get(), Config.GKReachZ:Get())
+			GKBox.CFrame = CFrame.new(Config.GKOffsetX:Get(), Config.GKOffsetY:Get(), Config.GKOffsetZ:Get())
+
+			local Balls = GetBalls(GKBox)
+
+			if Config.AutoCatch:Get() and (os.clock() - (Environment.AutoCatch or 0)) > 1 then
+				for Index, Ball in Balls do
+					if Ball:GetAttribute("catch") then
+						continue
+					end
+
+					if HasNetwork(Ball) then
+						continue 
+					end
+
+					Environment.AutoCatch = os.clock()
+					Environment.root.catch(setmetatable({}, {
+						__index = function(t, k)
+							if k == "character" then
+								return {
+									HumanoidRootPart = {
+										Position = Ball.Position
+									}
+								}
+							end
+
+							return Environment.root[k]
+						end
+					}), {
+						limb = {
+							Position = Ball.Position
+						},
+						ball = Ball,
+						--diveCatch = true
+					})
+
+					break
+				end
+			end
+
+			local Ball = Balls[1]
+
+			if Ball then
+				for _, Limb in GKLimbs do
+					if LocalPlayer.Character:FindFirstChild(Limb) then
+						firetouchinterest(LocalPlayer.Character[Limb], Ball, 0)
+						firetouchinterest(LocalPlayer.Character[Limb], Ball, 1)
+					end
+				end
+			end
+		end
+	end)
+
+	Environment.Connections.Reach = RunService.Stepped:Connect(Reach)
+
+	-- MOVED TO REACT
+	--[=[table.insert(Environment.Connections, CollectionService:GetTagged("BallsFolder")[1].DescendantAdded:Connect(function(Object)
+		if not Config.InsanePower:Get() then return end
+
+		if not Object:IsA("BodyVelocity") then return end
+		if not Object.Parent:IsA("BasePart") then return end
+
+		-- NOT NEEDED
+		--[[local VelocityMt = table.clone(getrawmetatable(Object))
+
+		setreadonly(VelocityMt, false)
+		setrawmetatable(Object, VelocityMt)
+
+		local old = VelocityMt.__index
+		VelocityMt.__index = function(self, key)
+			if not checkcaller() and key == "Velocity" and string.find(debug.traceback(), "react") then
+				return RandomVector()
+			end
+
+			return old(self, key)
+		end]]
+
+		repeat task.wait() until Object.Velocity ~= Vector3.new(0, 2, 0)
+
+		if Environment.ShotType == "Kick" then
+			Object.MaxForce = Vector3.one * math.huge
+			Object.Velocity *= Vector3.new(Config.Power:Get(), Config.Height:Get(), Config.Power:Get())
+		end
+	end))]=]
+
+elseif GAME_ID == 7931158824 then -- Pure Soccer
+	if not Supports(
+		"getrawmetatable",
+		"setrawmetatable",
+		"setreadonly",
+		"checkcaller",
+		"newcclosure",
+		"getnamecallmethod",
+		"getgc",
+		"debug.getinfo",
+		"setupvalue",
+		"getupvalue",
+		"firetouchinterest"
+	) then
+		getgenv().__biggie.Kill()
+
+		return StarterGui:SetCore("SendNotification", {
+			Title = "BIGGIE HUB",
+			Text = "Unsupported executor: " .. identifyexecutor()
+		})
+	end
+
+	--> Helpers
+
+	local HasNetwork = function(Ball)
+		return Ball:GetAttribute("Owner") == LocalPlayer.Name
+	end
+
+    local Events = ReplicatedStorage:WaitForChild("Events")
+    local BallEvent = Events:WaitForChild("Ball")
+
+	local BallsFolder = workspace:WaitForChild("Balls")
+	local CBalls = {}
+
+    local AddBall = function(Object)
+        if Object:IsA("BasePart") then
+            table.insert(CBalls, Object)
+
+            local Mt = table.clone(getrawmetatable(Object))
+
+            setrawmetatable(Object, Mt)
+            setreadonly(Mt, false)
+
+            local Refs = table.clone(Mt)
+
+            Mt.__index = newcclosure(function(self, key)
+                if not checkcaller() and Config.Reach:Get() and (key == "Position" or key == "CFrame") and debug.traceback():match("PS_25") then
+                    return Refs.__index(LocalPlayer.Character.RightFoot, key)
+                end
+
+                return Refs.__index(self, key)
+            end)
+
+			Mt.__namecall = newcclosure(function(self, ...)
+				if not checkcaller() and Config.Reach:Get() and getnamecallmethod() == "GetTouchingParts" then
+					return LocalPlayer.Character:GetChildren()
+				end
+
+				return Refs.__namecall(self, ...)
+			end)
+
+			table.insert(Environment.Connections, Object.ChildAdded:Connect(function(Object)
+				if Object:IsA("BodyVelocity") then
+					Object.MaxForce = Vector3.one * math.huge
+				end
+			end))
+        end
+    end
+
+    for _, Object in BallsFolder:GetChildren() do
+        AddBall(Object)
+    end
+
+    table.insert(Environment.Connections, BallsFolder.ChildAdded:Connect(AddBall))
+    table.insert(Environment.Connections, BallsFolder.ChildRemoved:Connect(function(Object)
+		local Index = table.find(CBalls, Object)
+        if Index then table.remove(CBalls, Index) end
+    end))
+
+    local GetTeam = function()
+        if not LocalPlayer.Team then
+            return "Home"
+        end
+
+        return string.sub(LocalPlayer.Team.Name, 1, 4) == "Home" and "Away" or "Home"
+    end
+    
+    local GetGoal = function()
+        return workspace.Area[GetTeam() .. "Goal"].Logo
+    end
+    
+    local GetNet = function()
+        local Net = workspace.Area[GetTeam() .. "Goal"]
+
+        if Net.Post:FindFirstChild("SFX") then
+            Net.Post.SFX.Parent = nil
+        end
+
+        return Net
+    end
+
+    local GetNetwork = function(Ball)
+        if HasNetwork(Ball) then return true end
+
+        local Start = LocalPlayer.Character:GetPivot()
+		local Connection = RunService.RenderStepped:Connect(LPH_JIT_MAX(function()
+			LocalPlayer.Character:PivotTo(CFrame.new(Ball.Position.X, -3, Ball.Position.Z))
+			LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.zero
+		end))
+
+        table.insert(Environment.Connections, Connection)
+
+        local Time = os.time()
+        while getgenv().__biggie and not HasNetwork(Ball) and os.time() - Time < 0.5 do
+			BallEvent:FireServer("OwnershipRequest", {Ball})
+
+            task.wait(0.1)
+        end
+
+		Connection:Disconnect()
+
+		LocalPlayer.Character:PivotTo(Start)
+		LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.zero
+
+        return HasNetwork(Ball)
+    end
+
+	local InfiniteStamina = function()
+		repeat task.wait() until Config.InfiniteStamina and Config.StreamableInfiniteStamina
+
+		if Environment.Connections.InfiniteStamina then
+			Environment.Connections.InfiniteStamina:Disconnect()
+			Environment.Connections.InfiniteStamina = nil
+		end
+
+		for _, Object in getgc(true) do
+			if typeof(Object) == "table" and rawget(Object, "init") and debug.getinfo(Object.init).source:match("Sprint") then
+				Environment.Connections.InfiniteStamina = RunService.Heartbeat:Connect(LPH_NO_UPVALUES(function()
+					if Config.StreamableInfiniteStamina:Get() then
+						setupvalue(Object.init, 2, math.clamp(getupvalue(Object.init, 2), 1, 250))
+					elseif Config.InfiniteStamina:Get() then
+						setupvalue(Object.init, 2, 250)
+					end
+				end))
+			end
+		end
+	end
+
+	for _, Object in getgc(true) do
+		if typeof(Object) == "table" and rawget(Object, "MouseButton1") and rawget(Object.MouseButton1, "Touched") and rawget(Object.MouseButton1, "Action") == "Shoot" then
+			Environment.Controls = Object
+			Environment.Touched = Object.MouseButton1.Touched
+
+			--[[for Index, Element in getconstants(Environment.Touched) do
+				if type(Element) == "vector" and Element == Vector3.one * 10000 then
+					setconstant(Environment.Touched, Index, Vector3.one * math.huge)
+				end
+			end]]
+		end
+	end
+
+	local Manipulate = function(Touched, RConfig)
+		if Config.InsanePower:Get() then
+			RConfig[3] *= Config.Power:Get()
+			RConfig[4] *= Config.Height:Get()
+		end
+
+		return Touched(RConfig)
+	end
+
+	RevertSet(Environment.Controls.MouseButton1, "Touched", function(RConfig)
+		return Manipulate(function(PassedConfig)
+			return Environment.Touched(PassedConfig)
+		end, RConfig)
+	end, true)
+
+	task.spawn(InfiniteStamina)
+	table.insert(Environment.Connections, LocalPlayer.CharacterAdded:Connect(function()
+		task.delay(1, InfiniteStamina)
+	end))
+
+	local Limbs = {"RightFoot", "LeftFoot"}
+
+	--> Tabs
+
+	Window:CreateTab({
+		Name = "Player",
+        Icon = GetCustomAsset("biggiehub/assets/user.png")
+	})
+
+	Window:CreateTab({
+		Name = "Ball",
+        Icon = GetCustomAsset("biggiehub/assets/square.png")
+	})
+
+	--> Buttons
+
+	Window.Tabs.Player:CreateSection({
+		Name = "Player Reach"
+	})
+
+	Config.CompReach = Window.Tabs.Player:CreateToggle({
+		Name = "Comp Reach",
+		Flag = "PS_COMP_REACH",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+    Config.Reach = Window.Tabs.Player:CreateToggle({
+        Name = "Reach",
+        Flag = "PS_REACH",
+        Value = false,
+        Callback = function(Value)
+            if Value then
+                Environment.Reach.Box = Create("BoxHandleAdornment", {
+                    Name = "",
+                    Size = Vector3.one * 1,
+                    Parent = CoreGui,
+                    Transparency = Config.BoxTransparency:Get(),
+                    ZIndex = math.huge,
+                    Adornee = LocalPlayer.Character:WaitForChild("HumanoidRootPart"),
+                    AlwaysOnTop = false,
+                    Color3 = Config.BoxColor:Get()
+                })
+            else
+                if Environment.Reach.Box then
+                    Environment.Reach.Box:Destroy()
+                end
+            end
+        end
+    })
+
+    Config.ReachX = Window.Tabs.Player:CreateInput({
+        Name = "Reach X",
+        Flag = "PS_REACH_X",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+    Config.ReachY = Window.Tabs.Player:CreateInput({
+        Name = "Reach Y",
+        Flag = "PS_REACH_Y",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+    Config.ReachZ = Window.Tabs.Player:CreateInput({
+        Name = "Reach Z",
+        Flag = "PS_REACH_Z",
+		Value = 10,
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.OffsetX = Window.Tabs.Player:CreateInput({
+        Name = "Offset X",
+        Flag = "PS_OFFSET_X",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.OffsetY = Window.Tabs.Player:CreateInput({
+        Name = "Offset Y",
+        Flag = "PS_OFFSET_Y",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.OffsetZ = Window.Tabs.Player:CreateInput({
+        Name = "Offset Z",
+        Flag = "PS_OFFSET_Z",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.BoxTransparency = Window.Tabs.Player:CreateSlider({
+        Name = "Box Transparency",
+        Flag = "PS_BOX_TRANSPARENCY",
+        Range = {0, 1},
+        Value = 0.9,
+        Increment = 0.05,
+        Callback = function(Value)
+			if Environment.Reach.Box then
+				Environment.Reach.Box.Transparency = Value
+			end
+		end
+    })
+
+	Config.BoxColor = Window.Tabs.Player:CreatePicker({
+		Name = "Box Color",
+		Flag = "PS_BOX_COLOR",
+		Value = {Saturation = 0, Brightness = 1, Hue = 0},
+		Callback = function(Value)
+			if Environment.Reach.Box then
+				Environment.Reach.Box.Color3 = Value
+			end
+		end
+	})
+
+	Window.Tabs.Player:CreateDivider()
+	
+	Window.Tabs.Player:CreateSection({
+		Name = "Movement"
+	})
+
+	Config.InfiniteStamina = Window.Tabs.Player:CreateToggle({
+		Name = "Infinite Stamina",
+		Flag = "PS_INF_STAMINA",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.StreamableInfiniteStamina = Window.Tabs.Player:CreateToggle({
+		Name = "Streamable Infinite Stamina",
+		Flag = "PS_STREAMABLE_INF_STAMINA",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.SpeedBoost = Window.Tabs.Player:CreateToggle({
+		Name = "Speed Boost",
+		Flag = "PS_SPEED_BOOST",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				repeat task.wait() until Config.SpeedBoost and Config.Speed
+
+				Environment.Connections.SpeedBoost = RunService.RenderStepped:Connect(LPH_JIT_MAX(function(DeltaTime)
+					if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or not LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        return
+                    end
+
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + LocalPlayer.Character.Humanoid.MoveDirection * Config.Speed:Get() * DeltaTime
+				end))
+			else
+				if Environment.Connections.SpeedBoost then
+					Environment.Connections.SpeedBoost:Disconnect()
+					Environment.Connections.SpeedBoost = nil
+				end
+			end
+		end
+	})
+
+	Config.Speed = Window.Tabs.Player:CreateSlider({
+		Name = "Speed",
+		Flag = "PS_SPEED",
+		Range = {0, 5},
+		Increment = 0.05,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.JumpBoost = Window.Tabs.Player:CreateToggle({
+		Name = "Jump Boost",
+		Flag = "PS_JUMP_BOOST",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				repeat task.wait() until Config.JumpBoost and Config.JumpPower
+
+                local OnCharacter = function(Character)
+                    if Environment.Connections.JumpBoost then
+						Environment.Connections.JumpBoost:Disconnect()
+						Environment.Connections.JumpBoost = nil
+					end
+
+                    Environment.Connections.JumpBoost = Character:WaitForChild("Humanoid").StateChanged:Connect(function(Old, New)
+                        if New == Enum.HumanoidStateType.Jumping then
+                            LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity = LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity + Vector3.new(0, Config.JumpPower:Get(), 0)
+                        end
+                    end)
+                end
+
+                Environment.Connections.JumpBoostCharacter = LocalPlayer.CharacterAdded:Connect(OnCharacter)
+                OnCharacter(LocalPlayer.Character)
+			else
+				if Environment.Connections.JumpBoost then
+					Environment.Connections.JumpBoost:Disconnect()
+					Environment.Connections.JumpBoost = nil
+				end
+			end
+		end
+	})
+
+	Config.JumpPower = Window.Tabs.Player:CreateSlider({
+		Name = "Jump Power",
+		Flag = "PS_JUMP_POWER",
+		Range = {0, 50},
+		Increment = 1,
+		Value = 10,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs.Player:CreateDivider()
+
+	Window.Tabs.Ball:CreateSection({
+		Name = "Insane Power"
+	})
+
+	Config.InsanePower = Window.Tabs.Ball:CreateToggle({
+		Name = "Insane Power",
+		Flag = "PS_INSANE_POWER",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.Power = Window.Tabs.Ball:CreateSlider({
+		Name = "Power",
+		Flag = "PS_POWER",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.Height = Window.Tabs.Ball:CreateSlider({
+		Name = "Height",
+		Flag = "PS_HEIGHT",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.ResetInsanePower = Window.Tabs.Ball:CreateButton({
+		Name = "Reset Insane Power",
+		Flag = "PS_RESET_INSANE_POWER",
+		Callback = function()
+			Config.Power:Set(1)
+			Config.Height:Set(1)
+		end
+	})
+
+	Window.Tabs.Ball:CreateDivider()
+
+	Window.Tabs.Ball:CreateSection({
+		Name = "Ball Manipulation"
+	})
+
+	Config.BringBall = Window.Tabs.Ball:CreateButton({
+		Name = "Bring Ball",
+		Flag = "PS_BRING_BALL",
+
+		Callback = function()
+            if #CBalls > 0 then
+                local Ball = CBalls[1]
+				local Network = GetNetwork(Ball)
+
+                if Network then
+                    Ball.CFrame = LocalPlayer.Character:GetPivot() * CFrame.new(0, 0, -3)
+
+                    Ball.Velocity = Vector3.zero
+                    Ball.RotVelocity = Vector3.zero
+                end
+            end
+		end
+	})
+
+	local Score = function(Ball)
+		if GetNetwork(Ball) then
+			Ball.CFrame = GetNet().Logo.CFrame
+
+			Ball.Velocity = Vector3.zero
+			Ball.RotVelocity = Vector3.zero
+		end
+	end
+
+	Config.Score = Window.Tabs.Ball:CreateButton({
+		Name = "Score",
+		Flag = "PS_SCORE",
+
+		Callback = function()
+			if #CBalls > 0 then
+				Score(CBalls[1])
+			end
+		end
+	})
+
+	Config.AutoScore = Window.Tabs.Ball:CreateToggle({
+		Name = "Auto Score",
+		Flag = "PS_AUTO_SCORE",
+		Value = false,
+
+		Callback = function(Value)
+			if Value then
+				CreateThread("AutoScore", function()
+					while Config.AutoScore:Get() do
+						Config.Score.Callback()
+						task.wait(0.1)
+					end
+				end)
+			else
+				CancelThread("AutoScore")
+			end
+		end
+	})
+
+	Window.Tabs.Ball:CreateDivider()
+
+	Environment.Connections.Reach = RunService.RenderStepped:Connect(LPH_JIT_MAX(function()
+		if not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			return
+		end
+
+		if Config.CompReach:Get() then
+			local Balls = table.clone(CBalls)
+
+			table.sort(Balls, function(a, b)
+				return (a.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < (b.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+			end)
+
+			local Ball = Balls[1]
+			if not Ball then return end
+
+			if HasNetwork(Ball) and Config.Reach:Get() ~= false then
+				Config.Reach:Set(false)
+			elseif not HasNetwork(Ball) and Config.Reach:Get() ~= true then
+				Config.Reach:Set(true)
+			end
+		end
+
+		if Config.Reach:Get() and Environment.Reach.Box then
+			Environment.Reach.Box.Adornee = LocalPlayer.Character.HumanoidRootPart
+			Environment.Reach.Box.Size = Vector3.new(Config.ReachX:Get(), Config.ReachY:Get(), Config.ReachZ:Get())
+			Environment.Reach.Box.CFrame = CFrame.new(Config.OffsetX:Get(), Config.OffsetY:Get(), Config.OffsetZ:Get())
+
+			local Params = OverlapParams.new()
+			Params.FilterType = Enum.RaycastFilterType.Whitelist
+			Params.FilterDescendantsInstances = CBalls
+
+			local Balls = workspace:GetPartBoundsInBox(LocalPlayer.Character.HumanoidRootPart.CFrame * Environment.Reach.Box.CFrame, Environment.Reach.Box.Size, Params)
+
+			if #Balls > 0 then
+				table.sort(Balls, function(a, b)
+					return (a.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < (b.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+				end)
+
+				for _, Limb in Limbs do
+					if LocalPlayer.Character:FindFirstChild(Limb) then
+						firetouchinterest(LocalPlayer.Character[Limb], Balls[1], 0)
+						firetouchinterest(LocalPlayer.Character[Limb], Balls[1], 1)
+					end
+				end
+			end
+		end
+	end))
+
+
+--[[else -- Steal A Brainrot
+	--> Desync bypass
+	local Mt = table.clone(getrawmetatable(LocalPlayer.Character.HumanoidRootPart))
+	
+	setreadonly(Mt, false)
+	setrawmetatable(LocalPlayer.Character.HumanoidRootPart, Mt)
+
+	local Index = Mt.__index
+	Mt.__index = function(self, key)
+		if not checkcaller() and Config.Desync:Get() and Environment.Desync.CFrame and (key == "Position" or key == "CFrame") then
+			return if key == "CFrame" then Environment.Desync.CFrame else Environment.Desync.CFrame.Position
+		end
+
+		return Index(self, key)
+	end
+
+	setreadonly(Mt, true)
+
+	--> Tabs
+
+	Window:CreateTab({
+		Name = "Player",
+		Icon = GetCustomAsset("biggiehub/assets/user.png")
+	})
+
+	--> Buttons
+
+	Window.Tabs.Player:CreateSection({
+		Name = "Player"
+	})
+
+	Config.Desync = Window.Tabs.Player:CreateToggle({
+		Name = "Desync",
+		Flag = "SAB_DESYNC",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				Environment.Desync.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+
+				local Sleeping = false
+
+				Environment.Connections.Desync = RunService.PostSimulation:Connect(function()
+					Sleeping = not Sleeping
+					sethiddenproperty(LocalPlayer.Character.HumanoidRootPart, "NetworkIsSleeping", Sleeping)
+				end)
+
+				setfflag("S2PhysicsSenderRate", 0)
+				setfpscap(4)
+				task.wait(0.1)
+				setfflag("S2PhysicsSenderRate", 20000000000)
+				setfpscap(240)
+			else
+				Environment.Desync.Position = nil
+
+				if Environment.Connections.Desync then
+					Environment.Connections.Desync:Disconnect()
+					Environment.Connections.Desync = nil
+				end
+
+				setfpscap(4)
+				setfflag("S2PhysicsSenderRate", 0)
+				task.wait(0.1)
+				setfpscap(240)
+			end
+		end
+	})]]
+
+--[[elseif PlaceId == 121864768012064 then -- Fish It!
+	--> Utility functions
+	local SellAllItems = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net"):WaitForChild("RF/SellAllItems")
+	
+	--> Tabs
+	Window:CreateTab({
+		Name = "Auto Farm",
+		Icon = GetCustomAsset("biggiehub/assets/controller.png")
+	})
+
+	--> Buttons
+	Config.AutoSellAll = Window.Tabs["Auto Farm"]:CreateToggle({
+		Name = "Auto Sell All",
+		Flag = "FISHIT_AUTO_SELL_ALL",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				CreateThread("AutoSell", function()
+					while true do
+						SellAllItems:InvokeServer()
+						task.wait(0.1)
+					end
+				end)
+			else
+				CancelThread("AutoSell")
+			end
+		end
+	})
+
+	Config.SellAll = Window.Tabs["Auto Farm"]:CreateButton({
+		Name = "Sell All",
+		Flag = "FISHIT_SELL_ALL",
+		Value = false,
+		Callback = function(Value)
+			SellAllItems:InvokeServer()
+		end
+	})]]
+
+elseif GAME_ID == 66654135 then -- Murder Mystery 2
+	--> Functions
+
+	local IsMurderer = function(Player)
+		if not Player:FindFirstChild("Backpack") then return end
+		if not Player.Character then return end 
+
+		return (Player.Backpack:FindFirstChild("Knife") or Player.Character:FindFirstChild("Knife")) and true or false
+	end
+
+	local IsSheriff = function(Player)
+		if not Player:FindFirstChild("Backpack") then return end
+		if not Player.Character then return end 
+
+		return (Player.Backpack:FindFirstChild("Gun") or Player.Character:FindFirstChild("Gun")) and true or false
+	end
+
+	local GetMurderer = function()
+		for _, Player in Players:GetPlayers() do
+			if IsMurderer(Player) then
+				return Player
+			end
+		end
+	end
+
+	local GetSheriff = function()
+		for _, Player in Players:GetPlayers() do
+			if IsSheriff(Player) then
+				return Player
+			end
+		end
+	end
+
+	local GetMap = function()
+		local CoinContainer = workspace:FindFirstChild("CoinContainer", true)
+		if CoinContainer then
+			return CoinContainer.Parent
+		end
+	end
+
+	local CurrentMap = GetMap()
+	table.insert(Environment.Connections, workspace.ChildAdded:Connect(function(Object)
+		if Object:GetAttribute("MapID") then
+			CurrentMap = Object
+		end
+	end))
+
+	--> Tabs
+
+	Window:CreateTab({
+		Name = "Main",
+		Icon = GetCustomAsset("biggiehub/assets/controller.png")
+	})
+
+	Window:CreateTab({
+		Name = "Visuals",
+		Icon = GetCustomAsset("biggiehub/assets/controller.png")
+	})
+
+	--> Buttons
+
+	Window.Tabs.Main:CreateSection({
+		Name = "Murderer"
+	})
+
+	Config.KillAll = Window.Tabs.Main:CreateButton({
+		Name = "Kill All",
+		Flag = "MM2_Kill_ALL",
+		Callback = function()
+			if LocalPlayer:FindFirstChild("Backpack") and LocalPlayer.Character then
+				local Knife = LocalPlayer.Backpack:FindFirstChild("Knife") or LocalPlayer.Character:FindFirstChild("Knife")
+				local StartPos = Players.LocalPlayer.Character:GetPivot()
+
+				if Knife then
+					for _, Player in Players:GetPlayers() do
+						if Player ~= Players.LocalPlayer and Player.Character then
+							local Start = os.time()
+							repeat
+								Players.LocalPlayer.Character:PivotTo(Player.Character:GetPivot())
+								Knife.Parent = LocalPlayer.Character
+								Knife.Stab:FireServer("Down")
+
+								task.wait()
+							until Player.Character.Humanoid.Health <= 0 or (os.time() - Start) > 1
+						end
+					end
+				end
+
+				Players.LocalPlayer.Character:PivotTo(StartPos)
+			end
+		end
+	})
+
+	Window.Tabs.Main:CreateDivider()
+
+	Window.Tabs.Main:CreateSection({
+		Name = "Sheriff"
+	})
+
+	--[[Config.SilentAim = Window.Tabs.Main:CreateToggle({
+		Name = "Silent Aim",
+		Flag = "MM2_SILENT_AIM",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+
+			end
+		end
+	})]]
+
+	Config.KillMurderer = Window.Tabs.Main:CreateButton({
+		Name = "Kill Murderer",
+		Flag = "MM2_Kill_MURDERER",
+		Callback = function()
+			if LocalPlayer:FindFirstChild("Backpack") and LocalPlayer.Character then
+				local Gun = LocalPlayer.Backpack:FindFirstChild("Gun") or LocalPlayer.Character:FindFirstChild("Gun")
+				local Murderer = GetMurderer()
+				local StartPos = Players.LocalPlayer.Character:GetPivot()
+
+				if Murderer then
+					local Start = os.time()
+					repeat
+						Players.LocalPlayer.Character:PivotTo(Murderer.Character:GetPivot())
+						Gun.Parent = LocalPlayer.Character
+						Gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(1, GetMurderer().Character.Head.Position, "AH2")
+
+						task.wait()
+					until Murderer.Character.Humanoid.Health <= 0 or (os.time() - Start) > 1
+
+					Players.LocalPlayer.Character:PivotTo(StartPos)
+				end
+			end
+		end
+	})
+
+	Window.Tabs.Main:CreateDivider()
+
+	Window.Tabs.Visuals:CreateSection({
+		Name = "Players"
+	})
+
+	Config.PlayerESP = Window.Tabs.Visuals:CreateToggle({
+		Name = "Player ESP",
+		Flag = "MM2_PLAYER_ESP",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				Environment.Connections.PlayerESP = RunService.RenderStepped:Connect(LPH_JIT_MAX(function()
+					for _, Player in Players:GetPlayers() do
+						if Player == Players.LocalPlayer then
+							continue
+						end
+
+						if not Player.Character then
+							continue
+						end
+
+						if not Environment.Cache.Players[Player.Character] then
+							local Highlight = Instance.new("Highlight")
+							Environment.Cache.Players[Player.Character] = Highlight
+
+							Highlight.Adornee = Player.Character
+							Highlight.Parent = Player.Character
+						end
+
+						Environment.Cache.Players[Player.Character].FillColor = (IsMurderer(Player) and Config.MurdererColor:Get()) or (IsSheriff(Player) and Config.SheriffColor:Get()) or Config.InnocentColor:Get()
+						Environment.Cache.Players[Player.Character].FillTransparency = Config.PlayerESPTransparency and Config.PlayerESPTransparency:Get() or 0.5
+					end
+				end))
+			else
+				if Environment.Connections.PlayerESP then
+					Environment.Connections.PlayerESP:Disconnect()
+					Environment.Connections.PlayerESP = nil
+				end
+
+				getgenv().__biggie.ClearCache("Players")
+			end
+		end
+	})
+	
+	Config.PlayerESPTransparency = Window.Tabs.Visuals:CreateSlider({
+		Name = "Player ESP Transparency",
+		Flag = "MM2_PLAYER_ESP_TRANSPARENCY",
+		Range = {0, 1},
+		Increment = 0.05,
+		Value = 0.9,
+		Callback = function(Value) end
+	})
+
+	Config.InnocentColor = Window.Tabs.Visuals:CreatePicker({
+		Name = "Innocent Color",
+		Flag = "MM2_INNOCENT_COLOR",
+		Value = {Saturation = 1, Brightness = 1, Hue = 1/3},
+		Callback = function(Value) end
+	})
+
+	Config.MurdererColor = Window.Tabs.Visuals:CreatePicker({
+		Name = "Murderer Color",
+		Flag = "MM2_MURDERER_COLOR",
+		Value = {Saturation = 1, Brightness = 1, Hue = 0},
+		Callback = function(Value) end
+	})
+
+	Config.SheriffColor = Window.Tabs.Visuals:CreatePicker({
+		Name = "Sheriff Color",
+		Flag = "MM2_SHERIFF_COLOR",
+		Value = {Saturation = 1, Brightness = 1, Hue = 2/3},
+		Callback = function(Value) end
+	})
+
+	Window.Tabs.Visuals:CreateDivider()
+
+	Window.Tabs.Visuals:CreateSection({
+		Name = "Coins"
+	})
+
+	Config.CoinESP = Window.Tabs.Visuals:CreateToggle({
+		Name = "Coin ESP",
+		Flag = "MM2_COIN_ESP",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				Environment.Connections.CoinESP = RunService.RenderStepped:Connect(LPH_JIT_MAX(function()
+					if CurrentMap and CurrentMap:FindFirstChild("CoinContainer") then
+						for _, Coin in CurrentMap.CoinContainer:GetChildren() do
+							if not Environment.Cache.Coins[Coin] then
+								local Highlight = Instance.new("Highlight")
+								Environment.Cache.Coins[Coin] = Highlight
+
+								local MeshPart = Coin.CoinVisual
+								Highlight.Adornee = MeshPart
+								Highlight.Parent = MeshPart
+							end
+
+							Environment.Cache.Coins[Coin].FillColor = Config.CoinColor:Get()
+							Environment.Cache.Coins[Coin].FillTransparency = Config.CoinTransparency:Get()
+						end
+					end
+				end))
+			else
+				if Environment.Connections.CoinESP then
+					Environment.Connections.CoinESP:Disconnect()
+					Environment.Connections.CoinESP = nil
+				end
+
+				getgenv().__biggie.ClearCache("Coins")
+			end
+		end
+	})
+
+	Config.CoinTransparency = Window.Tabs.Visuals:CreateSlider({
+		Name = "Coin Transparency",
+		Flag = "MM2_COIN_TRANSPARENCY",
+		Range = {0, 1},
+		Increment = 0.05,
+		Value = 0.5,
+		Callback = function(Value) end
+	})
+
+	Config.CoinColor = Window.Tabs.Visuals:CreatePicker({
+		Name = "Coin Color",
+		Flag = "MM2_COIN_COLOR",
+		Value = {Saturation = 1, Brightness = 1, Hue = 1/6},
+		Callback = function(Value) end
+	})
+
+	Window.Tabs.Visuals:CreateDivider()
+
+	--> Connections
+
+	table.insert(Environment.Connections, Players.PlayerAdded:Connect(function(Player)
+		table.insert(Environment.Connections, Player.CharacterRemoving:Connect(function(Character)
+			if Environment.Cache.Players[Character] then
+				Environment.Cache.Players[Character]:Destroy()
+				Environment.Cache.Players[Character] = nil
+			end
+		end))
+	end))
+
+	for _, Player in Players:GetPlayers() do
+		table.insert(Environment.Connections, Player.CharacterRemoving:Connect(function(Character)
+			if Environment.Cache.Players[Character] then
+				Environment.Cache.Players[Character]:Destroy()
+				Environment.Cache.Players[Character] = nil
+			end
+		end))
+	end
+
+
+elseif GAME_ID == 6325043396 then -- Flex Your FPS
+	if not Supports(
+		"getconnections",
+		"setupvalue",
+		"getrawmetatable",
+		"setrawmetatable",
+		"setreadonly",
+		"checkcaller",
+		"newcclosure",
+		"getnamecallmethod"
+	) then
+		getgenv().__biggie.Kill()
+
+		return StarterGui:SetCore("SendNotification", {
+			Title = "BIGGIE HUB",
+			Text = "Unsupported executor: " .. identifyexecutor()
+		})
+	end
+
+	--> Tabs
+
+	Window:CreateTab({
+		Name = "Main",
+		Icon = GetCustomAsset("biggiehub/assets/controller.png")
+	})
+
+	--> Buttons
+
+	Window.Tabs.Main:CreateSection({
+		Name = "FPS"
+	})
+
+	Config.SpoofFPS = Window.Tabs.Main:CreateToggle({
+		Name = "Spoof FPS",
+		Flag = "FYFPS_SPOOF_FPS",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.FPSTarget = Window.Tabs.Main:CreateInput({
+		Name = "FPS Target",
+		Flag = "FYFPS_FPS_TARGET",
+		Value = 59,
+		Numeric = true,
+		Callback = function(Value) end
+	})
+
+	Config.FPSVariance = Window.Tabs.Main:CreateInput({
+		Name = "FPS Variance",
+		Flag = "FYFPS_FPS_VARIANCE",
+		Value = 2,
+		Numeric = true,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs.Main:CreateDivider()
+
+	Window.Tabs.Main:CreateSection({
+		Name = "RAM"
+	})
+
+	Config.SpoofRAM = Window.Tabs.Main:CreateToggle({
+		Name = "Spoof RAM",
+		Flag = "FYFPS_SPOOF_RAM",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.RAMTarget = Window.Tabs.Main:CreateInput({
+		Name = "RAM Target",
+		Flag = "FYFPS_RAM_TARGET",
+		Value = 1250,
+		Numeric = true,
+		Callback = function(Value) end
+	})
+
+	Config.RAMVariance = Window.Tabs.Main:CreateInput({
+		Name = "RAM Variance",
+		Flag = "FYFPS_RAM_VARIANCE",
+		Value = 50,
+		Numeric = true,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs.Main:CreateDivider()
+
+	Window.Tabs.Main:CreateSection({
+		Name = "Resolution"
+	})
+
+	Config.SpoofResolution = Window.Tabs.Main:CreateToggle({
+		Name = "Spoof Resolution",
+		Flag = "FYFPS_SPOOF_RESOLUTION",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.ResolutionX = Window.Tabs.Main:CreateInput({
+		Name = "Resolution X",
+		Flag = "FYFPS_RESOLUTION_X",
+		Value = 1920,
+		Numeric = true,
+		Callback = function(Value) end
+	})
+
+	Config.ResolutionY = Window.Tabs.Main:CreateInput({
+		Name = "Resolution Y",
+		Flag = "FYFPS_RESOLUTION_Y",
+		Value = 1080,
+		Numeric = true,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs.Main:CreateDivider()
+
+	--> Spoofer
+
+	local fluctuationSeed = os.time()
+
+	local GetRealisticValue = function(targ, fluc)
+		if not fluc then fluc = 0 end
+
+		local t = os.time() - fluctuationSeed
+		local base = targ + math.sin(t * 10) * (fluc * 0.5)
+
+		local randomSpikeChance = math.random()
+		local useSpike = randomSpikeChance < 0.1
+		local spikeScale = useSpike and math.random(150, 250) * 0.01 or 0.2
+
+		local noise = math.random(-fluc, fluc) * spikeScale
+
+		return math.round(base + noise)
+	end
+
+	for _, Connection in getconnections(ReplicatedStorage:WaitForChild("meow").OnClientEvent) do
+		if Connection.Function then
+			local Function = Connection.Function
+            table.insert(Environment.Connections, RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+                if Config.SpoofFPS:Get() then
+                    setupvalue(Function, 5, GetRealisticValue(Config.FPSTarget:Get(), Config.FPSVariance:Get()))
+                end
+            end)))
+
+			break
+		end
+	end
+
+	--> Memory Usage
+
+	local Mt = table.clone(getrawmetatable(game.Stats))
+
+    setreadonly(Mt, false)
+    setrawmetatable(game.Stats, Mt)
+
+    local Namecall = Mt.__namecall
+    Mt.__namecall = newcclosure(function(self, ...)
+        if not checkcaller() and getnamecallmethod() == "GetTotalMemoryUsageMb" and Config.SpoofRAM:Get() then
+            return GetRealisticValue(Config.RAMTarget:Get(), Config.RAMVariance:Get())
+        end
+
+        return Namecall(self, ...)
+    end)
+
+    setreadonly(Mt, true)
+
+	--> Camera Resolution
+
+	local Mt = table.clone(getrawmetatable(Camera))
+
+    setreadonly(Mt, false)
+    setrawmetatable(Camera, Mt)
+
+    local Index = Mt.__index
+    Mt.__index = newcclosure(function(self, key)
+        if not checkcaller() and key == "ViewportSize" and Config.SpoofResolution:Get() then
+            return Vector2.new(Config.ResolutionX:Get(), Config.ResolutionY:Get())
+        end
+
+        return Index(self, key)
+    end)
+
+    setreadonly(Mt, true)
+
+
+elseif GAME_ID == 9517627739 then -- FUT
+	if not Supports(
+		"isnetworkowner",
+		"filtergc",
+		"firetouchinterest"
+	) then
+		getgenv().__biggie.Kill()
+
+		return StarterGui:SetCore("SendNotification", {
+			Title = "BIGGIE HUB",
+			Text = "Unsupported executor: " .. identifyexecutor()
+		})
+	end
+
+	--> Helpers
+
+	local Manipulate = function(Object)
+        if not Object:IsA("BodyVelocity") then return end
+        if not (Object.Parent and Object.Parent:IsA("BasePart")) then return end
+        if not isnetworkowner(Object.Parent) then return end
+
+		repeat task.wait() until Object.Velocity ~= Vector3.new(0, 2, 0)
+
+        if Config.InsanePower and Config.InsanePower:Get() then
+            Object.Velocity *= Vector3.new(Config.Power:Get(), Config.Height:Get(), Config.Power:Get())
+        end
+    end
+    
+    local Engine = workspace:WaitForChild("Game"):WaitForChild("Engine")
+    local CBalls, CFreekicks = {}, {}
+
+    local AddBall = function(Object)
+        if Object:IsA("BasePart") and Object.Name == "Ball" then
+			table.insert(CBalls, Object)
+        end
+    end
+
+	local AddFreekick = function(Object)
+		if Object:IsA("Model") and Object.Name:match(LocalPlayer.Name) and Object.Name:match("Freekick") then
+			table.insert(CFreekicks, Object)
+			table.insert(Environment.Connections, Object.DescendantAdded:Connect(Manipulate))
+		end
+	end
+
+    for _, Object in Engine:GetChildren() do
+		AddBall(Object)
+    end
+
+	for _, Object in workspace:GetChildren() do
+		AddFreekick(Object)
+    end
+
+    table.insert(Environment.Connections, Engine.ChildAdded:Connect(AddBall))
+    table.insert(Environment.Connections, Engine.ChildRemoved:Connect(function(Object)
+        local Index = table.find(CBalls, Object)
+        if Index then table.remove(CBalls, Index) end
+    end))
+
+	table.insert(Environment.Connections, workspace.ChildAdded:Connect(AddFreekick))
+    table.insert(Environment.Connections, workspace.ChildRemoved:Connect(function(Object)
+        local Index = table.find(CFreekicks, Object)
+        if Index then table.remove(CFreekicks, Index) end
+    end))
+
+	repeat
+		Environment.Sprint = filtergc("table", {Keys = {"Stamina", "IsSprinting", "CanSprint", "LastTime"}})[1]
+
+		task.wait(0.1)
+	until Environment.Sprint
+
+    --> Tabs
+
+    Window:CreateTab({
+        Name = "Player",
+        Icon = GetCustomAsset("biggiehub/assets/user.png")
+    })
+
+    Window:CreateTab({
+        Name = "Ball",
+        Icon = GetCustomAsset("biggiehub/assets/square.png")
+    })
+
+    --> Features
+
+    Window.Tabs.Player:CreateSection({
+		Name = "Player Reach"
+	})
+
+	Config.CompReach = Window.Tabs.Player:CreateToggle({
+		Name = "Comp Reach",
+		Flag = "FUT_COMP_REACH",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+    Config.Reach = Window.Tabs.Player:CreateToggle({
+        Name = "Reach",
+        Flag = "FUT_REACH",
+        Value = false,
+        Callback = function(Value)
+            if Value then
+                Environment.Reach.Box = Create("BoxHandleAdornment", {
+                    Name = "",
+                    Size = Vector3.one * 1,
+                    Parent = CoreGui,
+                    Transparency = Config.BoxTransparency:Get(),
+                    ZIndex = math.huge,
+                    Adornee = LocalPlayer.Character:WaitForChild("HumanoidRootPart"),
+                    AlwaysOnTop = false,
+                    Color3 = Config.BoxColor:Get()
+                })
+            else
+                if Environment.Reach.Box then
+                    Environment.Reach.Box:Destroy()
+                end
+            end
+        end
+    })
+
+    Config.ReachX = Window.Tabs.Player:CreateInput({
+        Name = "Reach X",
+        Flag = "FUT_REACH_X",
+        Value = 10,
+        Numeric = true,
+        Callback = function(Value) end
+    })
+
+    Config.ReachY = Window.Tabs.Player:CreateInput({
+        Name = "Reach Y",
+        Flag = "FUT_REACH_Y",
+        Value = 10,
+        Numeric = true,
+        Callback = function(Value) end
+    })
+
+    Config.ReachZ = Window.Tabs.Player:CreateInput({
+        Name = "Reach Z",
+        Flag = "FUT_REACH_Z",
+        Value = 10,
+        Numeric = true,
+        Callback = function(Value) end
+    })
+
+    Config.OffsetX = Window.Tabs.Player:CreateInput({
+        Name = "Offset X",
+        Flag = "FUT_OFFSET_X",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.OffsetY = Window.Tabs.Player:CreateInput({
+        Name = "Offset Y",
+        Flag = "FUT_OFFSET_Y",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+	Config.OffsetZ = Window.Tabs.Player:CreateInput({
+        Name = "Offset Z",
+        Flag = "FUT_OFFSET_Z",
+		Numeric = true,
+        Callback = function(Value) end
+    })
+
+    Config.BoxTransparency = Window.Tabs.Player:CreateSlider({
+        Name = "Box Transparency",
+        Flag = "FUT_BOX_TRANSPARENCY",
+        Range = {0, 1},
+        Value = 0.9,
+        Increment = 0.05,
+        Callback = function(Value)
+			if Environment.Reach.Box then
+				Environment.Reach.Box.Transparency = Value
+			end
+		end
+    })
+
+	Config.BoxColor = Window.Tabs.Player:CreatePicker({
+		Name = "Box Color",
+		Flag = "FUT_BOX_COLOR",
+		Value = {Saturation = 0, Brightness = 1, Hue = 0},
+		Callback = function(Value)
+			if Environment.Reach.Box then
+				Environment.Reach.Box.Color3 = Value
+			end
+		end
+	})
+
+    Window.Tabs.Player:CreateDivider()
+
+    Window.Tabs.Player:CreateSection({
+		Name = "Movement"
+	})
+
+	Config.InfiniteStamina = Window.Tabs.Player:CreateToggle({
+		Name = "Infinite Stamina",
+		Flag = "FUT_INF_STAMINA",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.SpeedBoost = Window.Tabs.Player:CreateToggle({
+		Name = "Speed Boost",
+		Flag = "FUT_SPEED_BOOST",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+				repeat task.wait() until Config.SpeedBoost and Config.Speed
+
+				Environment.Connections.SpeedBoost = RunService.RenderStepped:Connect(LPH_JIT_MAX(function(DeltaTime)
+					if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or not LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        return
+                    end
+
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + LocalPlayer.Character.Humanoid.MoveDirection * Config.Speed:Get() * DeltaTime
+				end))
+			else
+				if Environment.Connections.SpeedBoost then
+					Environment.Connections.SpeedBoost:Disconnect()
+					Environment.Connections.SpeedBoost = nil
+				end
+			end
+		end
+	})
+
+	Config.Speed = Window.Tabs.Player:CreateSlider({
+		Name = "Speed",
+		Flag = "FUT_SPEED",
+		Range = {0, 5},
+		Increment = 0.05,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.JumpBoost = Window.Tabs.Player:CreateToggle({
+		Name = "Jump Boost",
+		Flag = "FUT_JUMP_BOOST",
+		Value = false,
+		Callback = function(Value)
+			if Value then
+                local OnCharacter = function(Character)
+                    if Environment.Connections.JumpBoost then
+						Environment.Connections.JumpBoost:Disconnect()
+						Environment.Connections.JumpBoost = nil
+					end
+
+                    Environment.Connections.JumpBoost = Character:WaitForChild("Humanoid").StateChanged:Connect(function(Old, New)
+                        if New == Enum.HumanoidStateType.Jumping then
+                            LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity = LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity + Vector3.new(0, Config.JumpPower:Get(), 0)
+                        end
+                    end)
+                end
+
+                Environment.Connections.JumpBoostCharacter = LocalPlayer.CharacterAdded:Connect(OnCharacter)
+                OnCharacter(LocalPlayer.Character)
+			else
+				if Environment.Connections.JumpBoost then
+					Environment.Connections.JumpBoost:Disconnect()
+					Environment.Connections.JumpBoost = nil
+				end
+
+				if Environment.Connections.JumpBoostCharacter then
+					Environment.Connections.JumpBoostCharacter:Disconnect()
+					Environment.Connections.JumpBoostCharacter = nil
+				end
+			end
+		end
+	})
+
+	Config.JumpPower = Window.Tabs.Player:CreateSlider({
+		Name = "Jump Power",
+		Flag = "FUT_JUMP_POWER",
+		Range = {0, 100},
+		Increment = 1,
+		Value = 10,
+		Callback = function(Value) end
+	})
+
+	Window.Tabs.Player:CreateDivider()
+
+	Window.Tabs.Ball:CreateSection({
+		Name = "Insane Power"
+	})
+
+	Config.InsanePower = Window.Tabs.Ball:CreateToggle({
+		Name = "Insane Power",
+		Flag = "FUT_INSANE_POWER",
+		Value = false,
+		Callback = function(Value) end
+	})
+
+	Config.Power = Window.Tabs.Ball:CreateSlider({
+		Name = "Power",
+		Flag = "FUT_POWER",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.Height = Window.Tabs.Ball:CreateSlider({
+		Name = "Height",
+		Flag = "FUT_HEIGHT",
+		Range = {0, 10},
+		Increment = 0.1,
+		Value = 1,
+		Callback = function(Value) end
+	})
+
+	Config.ResetInsanePower = Window.Tabs.Ball:CreateButton({
+		Name = "Reset Insane Power",
+		Flag = "FUT_RESET_INSANE_POWER",
+		Callback = function()
+			Config.Power:Set(1)
+			Config.Height:Set(1)
+		end
+	})
+
+	Window.Tabs.Ball:CreateDivider()
+
+    --> Connections
+
+	Environment.Connections.InfiniteStamina = RunService.Heartbeat:Connect(LPH_JIT_MAX(function()
+		if Config.InfiniteStamina:Get() then
+			Environment.Sprint.Stamina = 100
+		end
+	end))
+
+    Environment.Connections.Reach = RunService.RenderStepped:Connect(LPH_JIT_MAX(function()
+        if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")) then
+            return
+        end
+		
+		if Config.CompReach:Get() then
+			local Balls = table.clone(CBalls)
+
+			table.sort(Balls, function(a, b)
+				return (a.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < (b.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+			end)
+
+			local Ball = Balls[1]
+			if not Ball then return end
+
+			local NetworkOwner =  Balls[1]:FindFirstChild("NetworkOwner") and Ball.NetworkOwner.Value == LocalPlayer
+
+			if NetworkOwner and Config.Reach:Get() ~= false then
+				Config.Reach:Set(false)
+			elseif not NetworkOwner and Config.Reach:Get() ~= true then
+				Config.Reach:Set(true)
+			end
+		end
+
+        if Config.Reach:Get() and Environment.Reach.Box then
+            Environment.Reach.Box.Adornee = LocalPlayer.Character.HumanoidRootPart
+            local BoxSize = Vector3.new(Config.ReachX:Get(), Config.ReachY:Get(), Config.ReachZ:Get())
+            Environment.Reach.Box.Size = BoxSize
+            Environment.Reach.Box.CFrame = CFrame.new(Config.OffsetX:Get(), Config.OffsetY:Get(), Config.OffsetZ:Get())
+
+            local HRP = LocalPlayer.Character.HumanoidRootPart
+            local Offset = Vector3.new(Config.OffsetX:Get(), Config.OffsetY:Get(), Config.OffsetZ:Get())
+            local Center = HRP.Position + Offset
+            
+            local HalfSize = BoxSize / 2
+            local Region = Region3.new(Center - HalfSize, Center + HalfSize)
+            Region = Region:ExpandToGrid(4)
+            
+            local Parts = workspace:FindPartsInRegion3(Region, nil, math.huge)
+            local Balls = {}
+
+            for _, Part in Parts do
+                if Part.Name == "Ball" and Part.Parent == workspace.Game.Engine then
+                    local RelativePos = HRP.CFrame:PointToObjectSpace(Part.Position) - Offset
+                    
+                    if math.abs(RelativePos.X) <= HalfSize.X and 
+                    math.abs(RelativePos.Y) <= HalfSize.Y and 
+                    math.abs(RelativePos.Z) <= HalfSize.Z then
+                        table.insert(Balls, Part)
+                    end
+                end
+            end
+
+            if #Balls > 0 then
+                table.sort(Balls, function(a, b)
+                    return (a.Position - HRP.Position).Magnitude < (b.Position - HRP.Position).Magnitude
+                end)
+
+                for _, Limb in {"RightFoot", "LeftFoot", "RightHand", "LeftHand", "Head"} do
+                    if LocalPlayer.Character:FindFirstChild(Limb) then
+                        firetouchinterest(LocalPlayer.Character[Limb], Balls[1], 0)
+                        firetouchinterest(LocalPlayer.Character[Limb], Balls[1], 1)
+                    end
+                end
+            end
+        end
+    end))
+
+    Environment.Connections.Manipulation = Engine.DescendantAdded:Connect(Manipulate)
+
+
+elseif GAME_ID == 210851291 then -- BABFT
+    --> Helpers
+
+    local TeleportPoints = {
+        Vector3.new(-45.449462890625, 54.9483757019043, 1229.2882080078125),
+        Vector3.new(-46.24980926513672, 73.58676147460938, 2005.041015625),
+        Vector3.new(-53.283348083496094, 89.33970642089844, 2813.8798828125),
+        Vector3.new(-59.91986083984375, 58.1134033203125, 3599.930419921875),
+        Vector3.new(-55.705780029296875, 70.07207489013672, 4353.6806640625),
+        Vector3.new(-51.73954391479492, 69.41526794433594, 5134.31298828125),
+        Vector3.new(-41.53508758544922, 49.481788635253906, 5903.330078125),
+        Vector3.new(-50.12015151977539, 69.33739471435547, 6684.2626953125),
+        Vector3.new(-49.82218933105469, 73.50459289550781, 7468.326171875),
+        Vector3.new(-42.574459075927734, 79.31845092773438, 8239.693359375),
+        Vector3.new(-118.30702209472656, 25.392213821411133, 8557.001953125),
+        Vector3.new(-56.260398864746094, -284.436767578125, 9503.0302734375)
+    }
+
+    local CreatePlatform = function(Position)
+        local Part = Create("Part", {
+            Size = Vector3.new(20, 2, 20),
+            Anchored = true,
+            CanCollide = true,
+            Transparency = 1,
+            Position = Position - Vector3.new(0, 3, 0),
+            Name = "Platform",
+            Parent = workspace
+        })
+
+        Debris:AddItem(Part, 3)
+    end
+
+
+    --> Tabs
+
+    Window:CreateTab({
+        Name = "Main",
+        Icon = GetCustomAsset("biggiehub/assets/controller.png")
+    })
+
+    --> Features
+
+    Window.Tabs.Main:CreateSection({
+        Name = "Auto Farm"
+    })
+
+    Config.AutoFarm = Window.Tabs.Main:CreateToggle({
+        Name = "Auto Farm",
+        Flag = "BABFT_AUTO_FARM",
+        Value = false,
+        Callback = function(Value)
+            if Value then
+                CreateThread("AutoFarm", function()
+                    while true do
+                        local HumanoidRootPart, Humanoid = LocalPlayer.Character:FindFirstChild("HumanoidRootPart"), LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                        if not (HumanoidRootPart and Humanoid) then task.wait() continue end
+
+                        for Index, Position in TeleportPoints do
+                            if Humanoid.Health <= 0 then break end
+
+                            HumanoidRootPart.CFrame = CFrame.new(Position)
+
+                            if Index < #TeleportPoints then
+                                CreatePlatform(Position)
+                            end
+
+                            if Index == #TeleportPoints then
+                                local Survived = 0
+                                local FailSafe = false
+
+                                while Survived < 11 do
+                                    task.wait(0.1)
+
+                                    Survived = Survived + 0.1
+
+                                    if Humanoid.Health <= 0 then
+                                        FailSafe = false
+                                        break
+                                    end
+
+                                    FailSafe = true
+                                end
+
+                                if FailSafe and Humanoid.Health > 0 then
+                                    Humanoid.Health = 0
+                                end
+
+                                break
+                            else
+                                task.wait(Config.AutoFarmSpeed:Get())
+                            end
+                        end
+
+                        repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+                        task.wait(2)
+                    end
+                end)
+            else
+                CancelThread("AutoFarm")
+            end
+        end
+    })
+
+    Config.AutoFarmSpeed = Window.Tabs.Main:CreateSlider({
+        Name = "Auto Farm Speed",
+        Flag = "BABFT_AUTO_FARM_SPEED",
+        Range = {0.1, 5},
+        Increment = 0.1,
+        Value = 1.5,
+        Callback = function(Value) end
+    })
+
+    Window.Tabs.Main:CreateDivider()
+
+
+elseif GAME_ID == 6035872082 then -- Rivals
+    if not Supports(
+		"Drawing",
+        "getrawmetatable",
+        "setrawmetatable",
+        "setreadonly",
+        "getnamecallmethod",
+        "checkcaller"
+	) then
+		getgenv().__biggie.Kill()
+
+		return StarterGui:SetCore("SendNotification", {
+			Title = "BIGGIE HUB",
+			Text = "Unsupported executor: " .. identifyexecutor()
+		})
+	end
+
+	--> Helpers
+
+	Environment.Cache.Players = {}
+
+    local CreateBox = function(Player)
+        local Box = {
+            [1] = Drawing.new("Line"),
+            [2] = Drawing.new("Line"),
+            [3] = Drawing.new("Line"),
+            [4] = Drawing.new("Line"),
+            [5] = Drawing.new("Text"),
+            [6] = Drawing.new("Line"),
+            [7] = Drawing.new("Line"),
+            [8] = Drawing.new("Line"),
+            [9] = Drawing.new("Line")
+        }
+
+        for I = 1, 4 do
+            local Line = Box[I]
+            Line.Thickness = 3
+            Line.Color = Color3.new(0, 0, 0)
+            Line.Visible = false
+        end
+
+        for I = 6, 9, 1 do
+            local Line = Box[I]
+            Line.Thickness = 1
+            Line.Color = Color3.new(1, 1, 1)
+            Line.Visible = false
+        end
+
+        local Text = Box[5]
+        Text.Size = 16
+        Text.Center = true
+        Text.Outline = true
+        Text.Color = Color3.new(1, 1, 1)
+        Text.Visible = false
+
+        return Box
+    end
+
+    local Update = function(...)
+        local Args = { ... }
+        local Box = Args[1]
+        if not Box then return end
+
+        local Config = Args[2]
+        if not Config then return end
+
+        local Object = Config.Object
+        local Color = Config.Color
+
+        if not (Object and typeof(Object) == "Instance" and Object:IsA("Model")) then return end
+
+        local PrimaryPart = Object.PrimaryPart or Object:FindFirstChild("HumanoidRootPart") or Object:FindFirstChildWhichIsA("BasePart")
+        
+        if not PrimaryPart then
+            for _, Value in Box do
+                Value.Visible = false
+            end
+
+            return
+        end
+        
+        local Position = PrimaryPart.Position
+        local ScreenPos, OnScreen = Camera:WorldToViewportPoint(Position)
+        
+        if not OnScreen then
+            for _, Value in Box do
+                Value.Visible = false
+            end
+
+            return
+        end
+        
+		local Distance = (Camera.CFrame.Position - Position).Magnitude
+		local FOVFactor = math.tan(math.rad(Camera.FieldOfView / 2))
+		local Height = (Config.BoxSize or 3000) / (Distance * 2 * FOVFactor)
+        local Width = Config.Box == true and Height or Height / 1.5
+        
+        local TopLeft = Vector2.new(ScreenPos.X - Width, ScreenPos.Y - Height)
+        local TopRight = Vector2.new(ScreenPos.X + Width, ScreenPos.Y - Height)
+        local BottomLeft = Vector2.new(ScreenPos.X - Width, ScreenPos.Y + Height)
+        local BottomRight = Vector2.new(ScreenPos.X + Width, ScreenPos.Y + Height)
+
+        Box[1].From = TopLeft
+        Box[1].To = TopRight
+        
+        Box[2].From = BottomLeft
+        Box[2].To = BottomRight
+        
+        Box[3].From = TopLeft
+        Box[3].To = BottomLeft
+        
+        Box[4].From = TopRight
+        Box[4].To = BottomRight
+
+        Box[6].From = TopLeft
+        Box[6].To = TopRight
+        
+        Box[7].From = BottomLeft
+        Box[7].To = BottomRight
+        
+        Box[8].From = TopLeft
+        Box[8].To = BottomLeft
+        
+        Box[9].From = TopRight
+        Box[9].To = BottomRight
+
+        Box[5].Text = (Config.Text ~= nil and Config.Text or Object.Name) .. (Object:FindFirstChild("Humanoid") and ` [{Object.Humanoid.Health}/{Object.Humanoid.MaxHealth}]` or " [N/A]")
+        Box[5].TextSize = Config.TextSize or 16
+        Box[5].Position = Vector2.new(ScreenPos.X, TopLeft.Y - 25)
+
+        for Index, Object in Box do
+            Object.Visible = true
+
+            if Index > 4 then
+                Object.Color = Color
+            end
+        end
+    end
+
+	local GetTorso = function(Character)
+		return Character:FindFirstChild("Torso") or Character:FindFirstChild("UpperTorso")
+	end
+
+	local GetTarget = function()
+		local ClosestDistance = Config.AimFOV:Get()
+		local Target = nil
+		
+		if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then 
+			return
+		end
+
+		local MyHumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+		local Targets = {}
+
+		for _, Player in Players:GetPlayers() do
+			if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("Head") and Player.Character:FindFirstChild("HumanoidRootPart") then
+				local PlayerRoot = Player.Character.HumanoidRootPart
+				local Humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+				
+				if Config.TeamCheck:Get() and PlayerRoot:FindFirstChild("TeammateLabel") --[[LocalPlayer.Team == Player.Team]] then
+					continue
+				end
+
+				if Humanoid and Humanoid.Health <= 0 then 
+					continue 
+				end
+				
+				local Magnitude = (MyHumanoidRootPart.Position - PlayerRoot.Position).Magnitude
+				if Magnitude > 3000 then 
+					continue 
+				end
+				
+				local ScreenPosition, OnScreen = Camera:WorldToViewportPoint(Player.Character.Head.Position)
+
+				if OnScreen then
+					local MouseLocation = UserInputService:GetMouseLocation()
+					local MouseDistance = (Vector2.new(ScreenPosition.X, ScreenPosition.Y) - MouseLocation).Magnitude
+					
+					if MouseDistance < ClosestDistance then
+						table.insert(Targets, {
+							Character = Player.Character,
+							MouseDistance = MouseDistance,
+							WorldDistance = Magnitude
+						})
+					end
+				end
+			end
+		end
+
+		if Config.FOVType:Get()[1] == "Closest To Player" then
+			table.sort(Targets, function(a, b)
+				if math.abs(a.WorldDistance - b.WorldDistance) < 50 then
+					return a.MouseDistance < b.MouseDistance
+				end
+				return a.WorldDistance < b.WorldDistance
+			end)
+		elseif Config.FOVType:Get()[1] == "Closest To Mouse" then
+			table.sort(Targets, function(a, b)
+				return a.MouseDistance < b.MouseDistance
+			end)
+		end
+
+		if #Targets > 0 then
+			local Head = Targets[1].Character["Head"]
+			local Torso = GetTorso(Targets[1].Character)
+
+			Target = Config.Part:Get()[1] == "Head" and Head or Config.Part:Get()[1] == "Torso" and Torso or (math.random(1, 2) == 1 and Head or Torso)
+		end
+
+		return Target
+	end
+
+	local GetDirection = function(Origin, Position)
+		return (Position - Origin).Unit * 1000
+	end
+
+	local FOVCircle = Drawing.new("Circle")
+	FOVCircle.Thickness = 1
+	FOVCircle.NumSides = 60
+	FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+	FOVCircle.Filled = false
+	FOVCircle.Transparency = 1
+
+	Environment.Cache.FOVCircle = FOVCircle
+
+    --> Tabs
+
+	Window:CreateTab({
+        Name = "Combat",
+        Icon = GetCustomAsset("biggiehub/assets/skull.png")
+    })
+
+    Window:CreateTab({
+        Name = "Visuals",
+        Icon = GetCustomAsset("biggiehub/assets/square.png")
+    })
+
+    --> Features
+
+	Window.Tabs.Combat:CreateSection({
+        Name = "Aim Assist"
+    })
+
+    Config.SilentAim = Window.Tabs.Combat:CreateToggle({
+        Name = "Silent Aim",
+        Flag = "RIVALS_SILENT_AIM",
+        Value = false,
+        Callback = function(Value) end
+    })
+
+    Config.Aimbot = Window.Tabs.Combat:CreateToggle({
+        Name = "Aimbot",
+        Flag = "RIVALS_AIMBOT",
+        Value = false,
+        Callback = function(Value) end
+    })
+
+    Config.AimSmoothness = Window.Tabs.Combat:CreateSlider({
+        Name = "Aim Smoothness",
+        Flag = "RIVALS_AIM_SMOOTHNESS",
+        Range = {0, 5},
+        Value = 1,
+        Increment = 1,
+        Callback = function(Value) end
+    })
+
+    Config.AimFOV = Window.Tabs.Combat:CreateSlider({
+        Name = "Aim FOV",
+        Flag = "RIVALS_AIM_FOV",
+        Range = {0, 1000},
+        Value = 100,
+        Increment = 1,
+        Callback = function(Value)
+            FOVCircle.Radius = Value
+        end
+    })
+
+	Config.FOVType = Window.Tabs.Combat:CreateDropdown({
+		Name = "FOV Type",
+		Flag = "RIVALS_FOV_TYPE",
+		Options = {"Closest To Player", "Closest To Mouse"},
+		MultiSelect = false,
+		Callback = function(Value) end
+	})
+
+	Config.FOVType:Select({"Closest To Mouse"})
+
+    Config.FOVCircle = Window.Tabs.Combat:CreateToggle({
+        Name = "FOV Circle",
+        Flag = "RIVALS_FOV_CIRCLE",
+        Value = false,
+        Callback = function(Value)
+            FOVCircle.Visible = Value
+        end
+    })
+
+	Config.Part = Window.Tabs.Combat:CreateDropdown({
+		Name = "Part",
+		Flag = "RIVALS_PART",
+		Options = {"Head", "Torso", "Random"},
+		MultiSelect = false,
+		Callback = function(Value) end
+	})
+
+	Config.Part:Select({"Head"})
+
+    Config.TeamCheck = Window.Tabs.Combat:CreateToggle({
+        Name = "Team Check",
+        Flag = "RIVALS_TEAM_CHECK",
+        Value = false,
+        Callback = function(Value) end
+    })
+
+    Window.Tabs.Combat:CreateDivider()
+
+    Window.Tabs.Combat:CreateSection({
+        Name = "Weapon Modifications"
+    })
+
+    Config.NoRecoil = Window.Tabs.Combat:CreateToggle({
+        Name = "No Recoil",
+        Flag = "RIVALS_NO_RECOIL",
+        Value = false,
+        Callback = function(Value) end
+    })
+
+    --[[Config.WallBang = Window.Tabs.Combat:CreateToggle({
+        Name = "Wall Bang",
+        Flag = "RIVALS_WALL_BANG",
+        Value = false,
+        Callback = function(Value) end
+    })]]
+
+    Window.Tabs.Combat:CreateDivider()
+
+    --> Visual Features
+
+    Window.Tabs.Visuals:CreateSection({
+        Name = "ESP Settings"
+    })
+
+    Config.PlayerESP = Window.Tabs.Visuals:CreateToggle({
+        Name = "Player ESP",
+        Flag = "RIVALS_PLAYER_ESP",
+        Value = false,
+        Callback = function(Value)
+            if not Value then
+                getgenv().__biggie.ClearCache("Players")
+            end
+        end
+    })
+
+    Config.ESPTeamCheck = Window.Tabs.Visuals:CreateToggle({
+        Name = "ESP Team Check",
+        Flag = "RIVALS_ESP_TEAM_CHECK",
+        Value = false,
+        Callback = function(Value) end
+    })
+
+    Window.Tabs.Visuals:CreateDivider()
+
+	--> Hooks
+
+	local Mt = table.clone(getrawmetatable(workspace))
+	
+	setreadonly(Mt, false)
+	setrawmetatable(workspace, Mt)
+
+	local Namecall = Mt.__namecall
+	Mt.__namecall = newcclosure(function(self, ...)
+		local Arguments = {...}
+		local Traceback = debug.traceback()
+		
+		if not checkcaller() and Config.SilentAim:Get() and Environment.Target and getnamecallmethod() == "Raycast" and not Traceback:match("CameraController") then
+			Arguments[2] = GetDirection(Arguments[1], Environment.Target.Position)
+		end
+
+		return Namecall(self, unpack(Arguments))
+	end)
+	setreadonly(Mt, true)
+
+	--> Connections
+
+	Environment.Connections.NoRecoil = Camera.ChildAdded:Connect(function(Object)
+		if Config.NoRecoil:Get() and Object.Name == "Recoil" or Object.Name == "Shake" then
+			Object:Destroy()
+		end
+	end)
+
+	Environment.Connections.Main = RunService.RenderStepped:Connect(LPH_JIT_MAX(function()
+		FOVCircle.Position = UserInputService:GetMouseLocation()
+		Environment.Target = GetTarget()
+
+		if Config.Aimbot:Get() and Environment.Target then
+			local LookAt = CFrame.new(Camera.CFrame.Position, Environment.Target.Position)
+			local Smoothness = Config.AimSmoothness:Get()
+
+			Camera.CFrame = Camera.CFrame:Lerp(LookAt, 1 / Smoothness)
+		end
+
+		if Config.PlayerESP:Get() then
+			for _, Player in Players:GetPlayers() do
+				if not Player.Character then
+					continue
+				end
+
+				if Player == LocalPlayer then
+					continue
+				end
+
+                local PlayerRoot = Player.Character:FindFirstChild("HumanoidRootPart")
+
+                if not PlayerRoot then
+                    continue
+                end
+
+                if Config.ESPTeamCheck:Get() and PlayerRoot:FindFirstChild("TeammateLabel") then
+                    if Environment.Cache.Players[Player.Character] then
+                        for _, Object in Environment.Cache.Players[Player.Character] do
+							Object:Destroy()
+						end
+
+						Environment.Cache.Players[Player.Character] = nil
+                    end
+
+                    continue
+                end
+				
+				if not Environment.Cache.Players[Player.Character] then
+					Environment.Cache.Players[Player.Character] = CreateBox()
+
+					table.insert(Environment.Connections, Player.CharacterRemoving:Connect(function()
+						if not Environment.Cache.Players[Player.Character] then return end
+
+						for _, Object in Environment.Cache.Players[Player.Character] do
+							Object:Destroy()
+						end
+
+						Environment.Cache.Players[Player.Character] = nil
+					end))
+				end
+
+				Update(Environment.Cache.Players[Player.Character], {
+					Object = Player.Character,
+					Color = (Environment.Target and Environment.Target.Parent == Player.Character and (Config.SilentAim:Get() or Config.Aimbot:Get()) and Color3.new(1, 0.1, 0.1)) or Color3.new(1, 1, 1),
+					Text = Player.Name,
+					BoxSize = 3000,
+					TextSize = 20
+				})
+			end
+		end
+	end))
+end
+
+--> Config
+
+Window:CreateTab({
+    Name = "Config",
+    Icon = GetCustomAsset("biggiehub/assets/config.png")
+})
+
+Window:CreateTab({
+	Name = "Info",
+	Icon = GetCustomAsset("biggiehub/assets/help.png")
+})
+
+Window.Tabs.Config:CreateSection({
+	Name = "Configuration"
+})
+
+--[[Config.SnowEffect = Window.Tabs.Config:CreateToggle({
+	Name = "Snow Effect",
+	Flag = "CONFIG_SNOW_EFFECT",
+	Value = true,
+	Callback = function(Value)
+		Window:SetSnowEffect(Value)
+	end
+})
+
+Config.ClearSnow = Window.Tabs.Config:CreateButton({
+    Name = "Clear Snow",
+    Flag = "CONFIG_CLEAR_SNOW",
+    
+    Callback = function()
+		Window:ClearSnow()
+	end
+})]]
+
+Config.KillScript = Window.Tabs.Config:CreateButton({
+    Name = "Kill Script",
+    Flag = "CONFIG_KILL_SCRIPT",
+    Callback = getgenv().__biggie.Kill
+})
+
+--[[if getgenv().__debug then
+	Config.BaseURL = Window.Tabs.Config:CreateInput({
+		Name = "Base URL",
+		Flag = "CONFIG_BASE_URL",
+		Value = SERVER,
+		Numeric = false,
+		Confirm = true,
+		Callback = function(Value)
+			SERVER = Value
+		end
+	})
+end]]
+
+Window.Tabs.Config:CreateDivider()
+
+Window.Tabs.Config:CreateSection({
+    Name = "Misc"
+})
+
+Config.AntiAFK = Window.Tabs.Config:CreateToggle({
+    Name = "Anti AFK",
+    Flag = "CONFIG_ANTI_AFK",
+    Value = false,
+    Callback = function(Value)
+		if Value then
+			StarterGui:SetCore("SendNotification", {
+				Title = "BIGGIE HUB",
+				Text = "The anti afk feature might ban in some games"
+			})
+		end
+	end
+})
+
+table.insert(Environment.Connections, LocalPlayer.Idled:Connect(function()
+    if Config.AntiAFK:Get() then
+        game:getService("VirtualUser"):ClickButton2(Vector2.new(0, 0))
+    end
+end))
+
+Window.Tabs.Config:CreateDivider()
+
+Window.Tabs.Info:CreateLabel({
+	Name = "<font size='16'><b>Credits</b></font>\nJuice / w0ki for leaking Biggie Hub"
+})
+
+Window.Tabs.Info:CreateLabel({
+	Name = VERSION
+})
+
+Window.Tabs.Info:SetTheme(GetCustomAsset("biggiehub/assets/biggie.png"), {
+	ImageTransparency = 0.9
+})
+
+Window:Load()
+
+if GetCustomAssetError then
+	StarterGui:SetCore("SendNotification", {
+		Title = "BIGGIE HUB",
+		Text = "Icons failed to load"
+	})
+end
+
+Log("Everything loaded successfully.")
