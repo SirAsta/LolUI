@@ -9,7 +9,7 @@ end
 Library.CreateWindow = function(Options)
     Options = Options or {}
 
-    local WindowName = Options.Name or "Biggie Hub"
+    local WindowName = Options.Name or "Lol Lib"
     local Parent     = Options.Parent or CoreGui
     local AutoSave   = Options.AutoSave
     local AutoShow   = Options.AutoShow

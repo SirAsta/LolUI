@@ -10,7 +10,7 @@ local Library = loadstring(game:HttpGet("https://your-cdn.com/Lol%20Lib.lua"))()
 -- Library:AddIcons("lucide", { sword = "rbxassetid://000000", ... })
 
 local Window = Library:CreateWindow({
-    Name = "BIGGIE HUB 4.0 <font color='rgb(255,0,0)'>#Lol Lib Edition</font>",
+    Name = "Lol Lib <font color='rgb(255,0,0)'>v1.0</font>",
     Parent = game:GetService("CoreGui"),
     AutoShow = true,
     AutoSave = true,

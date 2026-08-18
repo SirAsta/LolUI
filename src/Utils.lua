@@ -62,7 +62,7 @@ local C = {
 
 local FONT = Enum.Font.Gotham
 
-local ConfigFolder = "biggiehub/config"
+local ConfigFolder = "lolui/config"
 local ConfigFile   = ConfigFolder .. "/ui.json"
 
 local function LoadConfigData()

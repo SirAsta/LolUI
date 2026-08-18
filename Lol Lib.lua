@@ -62,7 +62,7 @@ local C = {
 
 local FONT = Enum.Font.Gotham
 
-local ConfigFolder = "biggiehub/config"
+local ConfigFolder = "lolui/config"
 local ConfigFile   = ConfigFolder .. "/ui.json"
 
 local function LoadConfigData()
@@ -141,7 +141,7 @@ end
 Library.CreateWindow = function(Options)
     Options = Options or {}
 
-    local WindowName = Options.Name or "Biggie Hub"
+    local WindowName = Options.Name or "Lol Lib"
     local Parent     = Options.Parent or CoreGui
     local AutoSave   = Options.AutoSave
     local AutoShow   = Options.AutoShow

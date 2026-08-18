@@ -1,0 +1,23 @@
+# Replit configuration
+.replit
+
+# Luis-style directory or cache
+.ls
+
+# Models directory
+models
+
+# Lua bytecode
+*.luac
+
+# Cache directories
+.cache/
+
+# Local state
+.local/
+
+# Nix temporary files
+.nix-defexpr/
+
+# Output from build
+.build/
