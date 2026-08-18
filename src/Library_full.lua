@@ -462,18 +462,18 @@ Library.Notify = function(_, Config)
 
     task.spawn(function()
         task.wait()
-        Tween(Main, { Position = UDim2.new(0, 0, 0, 0) }, 0.35)
-        Tween(Container, { Size = UDim2.new(1, 0, 0, Main.AbsoluteSize.Y) }, 0.35)
-        Tween(DurationBar, { Size = UDim2.new(0, 0, 0, 2) }, Duration)
+        Tween(Main, 0.35, { Position = UDim2.new(0, 0, 0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
+        Tween(Container, 0.35, { Size = UDim2.new(1, 0, 0, Main.AbsoluteSize.Y) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
+        Tween(DurationBar, Duration, { Size = UDim2.new(0, 0, 0, 2) }, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut):Play()
         task.wait(Duration + 0.1)
-        Tween(Main, { Position = UDim2.new(1.5, 0, 0, 0) }, 0.35)
+        Tween(Main, 0.35, { Position = UDim2.new(1.5, 0, 0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
         task.wait(0.35)
         Container:Destroy()
     end)
 
     return {
         Close = function()
-            Tween(Main, { Position = UDim2.new(1.5, 0, 0, 0) }, 0.35)
+            Tween(Main, 0.35, { Position = UDim2.new(1.5, 0, 0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
             task.wait(0.35)
             Container:Destroy()
         end,
@@ -608,10 +608,10 @@ Library.Popup = function(_, Config)
             PopupGui:Destroy()
         end)
         Btn.MouseEnter:Connect(function()
-            Tween(Btn, { BackgroundColor3 = IsPrimary and C.AccentDim or C.ElementHover }, 0.1)
+            Tween(Btn, 0.1, { BackgroundColor3 = IsPrimary and C.AccentDim or C.ElementHover }):Play()
         end)
         Btn.MouseLeave:Connect(function()
-            Tween(Btn, { BackgroundColor3 = IsPrimary and C.Accent or C.Element }, 0.1)
+            Tween(Btn, 0.1, { BackgroundColor3 = IsPrimary and C.Accent or C.Element }):Play()
         end)
     end
 
@@ -701,20 +701,6 @@ Library.CreateWindow = function(_, Options)
         end
     end
 
-    if Options.Acrylic then
-        pcall(function()
-            local Blur = Instance.new("BlurEffect")
-            Blur.Name = "AcrylicBlur"
-            Blur.Size = 24
-            Blur.Parent = game:GetService("Lighting")
-            table.insert(Connections, {
-                Disconnect = function()
-                    Blur:Destroy()
-                end,
-            })
-        end)
-    end
-
     local OpenBtn
     if OpenButton and not AutoShow then
         OpenBtn = New("TextButton", {
@@ -744,10 +730,10 @@ Library.CreateWindow = function(_, Options)
             if OpenBtn then OpenBtn.Visible = false end
         end)
         OpenBtn.MouseEnter:Connect(function()
-            Tween(OpenBtn, { BackgroundColor3 = C.AccentDim }, 0.15)
+            Tween(OpenBtn, 0.15, { BackgroundColor3 = C.AccentDim }):Play()
         end)
         OpenBtn.MouseLeave:Connect(function()
-            Tween(OpenBtn, { BackgroundColor3 = OpenButton.Color or C.Accent }, 0.15)
+            Tween(OpenBtn, 0.15, { BackgroundColor3 = OpenButton.Color or C.Accent }):Play()
         end)
     end
 

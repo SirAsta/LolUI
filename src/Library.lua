@@ -1,6 +1,622 @@
+local cloneref = (cloneref or clonereference or function(i) return i end)
+
+local CoreGui           = cloneref(game:GetService("CoreGui"))
+local Players           = cloneref(game:GetService("Players"))
+local UserInputService  = cloneref(game:GetService("UserInputService"))
+local TweenService      = cloneref(game:GetService("TweenService"))
+local RunService        = cloneref(game:GetService("RunService"))
+local HttpService       = cloneref(game:GetService("HttpService"))
+
+local LocalPlayer = Players.LocalPlayer
+
+local function New(Class, Props, Children)
+    local Obj = Instance.new(Class)
+    if Props then
+        for Key, Value in pairs(Props) do
+            Obj[Key] = Value
+        end
+    end
+    if Children then
+        for _, Child in ipairs(Children) do
+            Child.Parent = Obj
+        end
+    end
+    return Obj
+end
+
+local function Tween(Obj, Props, Time)
+    local Ok, T = pcall(function()
+        return TweenService:Create(Obj, TweenInfo.new(Time or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), Props)
+    end)
+    if Ok and T then
+        T:Play()
+    else
+        for Key, Value in pairs(Props) do
+            pcall(function() Obj[Key] = Value end)
+        end
+    end
+end
+
+local function Round(Num, Increment)
+    Increment = Increment or 1
+    return math.floor(Num / Increment + 0.5) * Increment
+end
+
+local function Clamp(Num, Min, Max)
+    return math.max(Min, math.min(Max, Num))
+end
+
+local C = {
+    BG          = Color3.fromRGB(18, 18, 20),
+    Sidebar     = Color3.fromRGB(22, 22, 25),
+    TopBar      = Color3.fromRGB(28, 28, 32),
+    Element     = Color3.fromRGB(31, 31, 35),
+    ElementHover= Color3.fromRGB(40, 40, 46),
+    Text        = Color3.fromRGB(236, 236, 236),
+    SubText     = Color3.fromRGB(150, 150, 156),
+    Accent      = Color3.fromRGB(224, 52, 72),
+    AccentDim   = Color3.fromRGB(120, 32, 44),
+    Divider     = Color3.fromRGB(46, 46, 52),
+    Track       = Color3.fromRGB(58, 58, 64),
+}
+
+local FONT = Enum.Font.Gotham
+
+local ConfigFolder = "lolui/config"
+local ConfigFile   = ConfigFolder .. "/ui.json"
+
+local function LoadConfigData()
+    if not (isfolder and isfile and readfile) then return {} end
+    local Ok, Data = pcall(function()
+        if isfile(ConfigFile) then
+            return HttpService:JSONDecode(readfile(ConfigFile))
+        end
+        return {}
+    end)
+    return (Ok and type(Data) == "table") and Data or {}
+end
+
+local function SaveConfigData(Data)
+    if not (writefile and isfolder and makefolder) then return end
+    pcall(function()
+        if not isfolder(ConfigFolder) then
+            makefolder(ConfigFolder)
+        end
+        writefile(ConfigFile, HttpService:JSONEncode(Data))
+    end)
+end
+
+local Icons = { Packs = {} }
+
+function Icons.AddIcons(Pack, Map)
+    Icons.Packs[Pack] = Map
+end
+
+function Icons.Resolve(Icon)
+    if type(Icon) ~= "string" or Icon == "" then
+        return ""
+    end
+    local Pack, Name = Icon:match("^(.-):(.+)$")
+    if Pack and Icons.Packs[Pack] then
+        return Icons.Packs[Pack][Name] or Icon
+    end
+    return Icon
+end
+
+Icons.AddIcons("lucide", {
+    ["user"] = "rbxassetid://11295273292",
+    ["gamepad-2"] = "rbxassetid://11326876816",
+    ["mouse-pointer-2"] = "rbxassetid://11432847583",
+    ["skull"] = "rbxassetid://12967641870",
+    ["users"] = "rbxassetid://11432832657",
+    ["code"] = "rbxassetid://11419714821",
+    ["settings"] = "rbxassetid://11432859220",
+    ["search"] = "rbxassetid://11293977875",
+    ["swords"] = "rbxassetid://12967641870",
+    ["shield"] = "rbxassetid://11295273292",
+    ["crosshair"] = "rbxassetid://11326876816",
+    ["target"] = "rbxassetid://11432832657",
+    ["zap"] = "rbxassetid://11419714821",
+    ["eye"] = "rbxassetid://11432847583",
+    ["box"] = "rbxassetid://14187686429",
+    ["door-open"] = "rbxassetid://11293981586",
+    ["help-circle"] = "rbxassetid://11432859220",
+    ["info"] = "rbxassetid://11432859220",
+    ["trash"] = "rbxassetid://11293981586",
+    ["chevron-down"] = "rbxassetid://11293981980",
+    ["check"] = "rbxassetid://11293980042",
+    ["x"] = "rbxassetid://11293981586",
+    ["plus"] = "rbxassetid://11293980310",
+    ["refresh"] = "rbxassetid://11293978098",
+})
+
+local Themes = {
+    Dark = {
+        Name = "Dark",
+        BG = Color3.fromRGB(18, 18, 20),
+        Sidebar = Color3.fromRGB(22, 22, 25),
+        TopBar = Color3.fromRGB(28, 28, 32),
+        Element = Color3.fromRGB(31, 31, 35),
+        ElementHover = Color3.fromRGB(40, 40, 46),
+        Text = Color3.fromRGB(236, 236, 236),
+        SubText = Color3.fromRGB(150, 150, 156),
+        Accent = Color3.fromRGB(224, 52, 72),
+        AccentDim = Color3.fromRGB(120, 32, 44),
+        Divider = Color3.fromRGB(46, 46, 52),
+        Track = Color3.fromRGB(58, 58, 64),
+        Toggle = Color3.fromRGB(51, 199, 89),
+        Slider = Color3.fromRGB(0, 145, 255),
+    },
+    Light = {
+        Name = "Light",
+        BG = Color3.fromRGB(245, 245, 245),
+        Sidebar = Color3.fromRGB(255, 255, 255),
+        TopBar = Color3.fromRGB(250, 250, 250),
+        Element = Color3.fromRGB(240, 240, 240),
+        ElementHover = Color3.fromRGB(230, 230, 230),
+        Text = Color3.fromRGB(20, 20, 20),
+        SubText = Color3.fromRGB(100, 100, 100),
+        Accent = Color3.fromRGB(0, 120, 215),
+        AccentDim = Color3.fromRGB(0, 80, 160),
+        Divider = Color3.fromRGB(220, 220, 220),
+        Track = Color3.fromRGB(200, 200, 200),
+        Toggle = Color3.fromRGB(52, 168, 83),
+        Slider = Color3.fromRGB(0, 120, 215),
+    },
+    AMOLED = {
+        Name = "AMOLED",
+        BG = Color3.fromRGB(0, 0, 0),
+        Sidebar = Color3.fromRGB(10, 10, 10),
+        TopBar = Color3.fromRGB(15, 15, 15),
+        Element = Color3.fromRGB(18, 18, 18),
+        ElementHover = Color3.fromRGB(30, 30, 30),
+        Text = Color3.fromRGB(240, 240, 240),
+        SubText = Color3.fromRGB(120, 120, 120),
+        Accent = Color3.fromRGB(0, 180, 255),
+        AccentDim = Color3.fromRGB(0, 100, 180),
+        Divider = Color3.fromRGB(35, 35, 35),
+        Track = Color3.fromRGB(45, 45, 45),
+        Toggle = Color3.fromRGB(0, 200, 80),
+        Slider = Color3.fromRGB(0, 180, 255),
+    },
+    Rose = {
+        Name = "Rose",
+        BG = Color3.fromRGB(31, 3, 8),
+        Sidebar = Color3.fromRGB(40, 10, 15),
+        TopBar = Color3.fromRGB(50, 12, 20),
+        Element = Color3.fromRGB(56, 30, 35),
+        ElementHover = Color3.fromRGB(70, 35, 42),
+        Text = Color3.fromRGB(253, 242, 248),
+        SubText = Color3.fromRGB(214, 122, 166),
+        Accent = Color3.fromRGB(190, 24, 93),
+        AccentDim = Color3.fromRGB(130, 16, 62),
+        Divider = Color3.fromRGB(80, 30, 45),
+        Track = Color3.fromRGB(100, 40, 55),
+        Toggle = Color3.fromRGB(233, 95, 116),
+        Slider = Color3.fromRGB(190, 24, 93),
+    },
+    Violet = {
+        Name = "Violet",
+        BG = Color3.fromRGB(30, 10, 62),
+        Sidebar = Color3.fromRGB(38, 15, 72),
+        TopBar = Color3.fromRGB(45, 18, 85),
+        Element = Color3.fromRGB(52, 38, 80),
+        ElementHover = Color3.fromRGB(65, 48, 95),
+        Text = Color3.fromRGB(250, 245, 255),
+        SubText = Color3.fromRGB(143, 126, 224),
+        Accent = Color3.fromRGB(109, 40, 217),
+        AccentDim = Color3.fromRGB(76, 28, 160),
+        Divider = Color3.fromRGB(70, 50, 100),
+        Track = Color3.fromRGB(85, 60, 120),
+        Toggle = Color3.fromRGB(124, 58, 237),
+        Slider = Color3.fromRGB(109, 40, 217),
+    },
+    Emerald = {
+        Name = "Emerald",
+        BG = Color3.fromRGB(1, 20, 17),
+        Sidebar = Color3.fromRGB(5, 30, 25),
+        TopBar = Color3.fromRGB(8, 38, 30),
+        Element = Color3.fromRGB(32, 46, 42),
+        ElementHover = Color3.fromRGB(42, 60, 55),
+        Text = Color3.fromRGB(236, 253, 245),
+        SubText = Color3.fromRGB(63, 191, 143),
+        Accent = Color3.fromRGB(5, 150, 105),
+        AccentDim = Color3.fromRGB(4, 100, 72),
+        Divider = Color3.fromRGB(40, 65, 55),
+        Track = Color3.fromRGB(50, 75, 65),
+        Toggle = Color3.fromRGB(16, 185, 129),
+        Slider = Color3.fromRGB(5, 150, 105),
+    },
+    Midnight = {
+        Name = "Midnight",
+        BG = Color3.fromRGB(10, 15, 30),
+        Sidebar = Color3.fromRGB(15, 20, 38),
+        TopBar = Color3.fromRGB(18, 25, 45),
+        Element = Color3.fromRGB(36, 40, 54),
+        ElementHover = Color3.fromRGB(45, 50, 65),
+        Text = Color3.fromRGB(219, 234, 254),
+        SubText = Color3.fromRGB(47, 116, 209),
+        Accent = Color3.fromRGB(30, 58, 138),
+        AccentDim = Color3.fromRGB(20, 40, 100),
+        Divider = Color3.fromRGB(40, 48, 68),
+        Track = Color3.fromRGB(50, 58, 78),
+        Toggle = Color3.fromRGB(37, 99, 235),
+        Slider = Color3.fromRGB(37, 99, 235),
+    },
+    Crimson = {
+        Name = "Crimson",
+        BG = Color3.fromRGB(12, 4, 4),
+        Sidebar = Color3.fromRGB(20, 8, 8),
+        TopBar = Color3.fromRGB(28, 10, 10),
+        Element = Color3.fromRGB(37, 31, 31),
+        ElementHover = Color3.fromRGB(50, 40, 40),
+        Text = Color3.fromRGB(254, 242, 242),
+        SubText = Color3.fromRGB(111, 117, 123),
+        Accent = Color3.fromRGB(185, 28, 28),
+        AccentDim = Color3.fromRGB(120, 18, 18),
+        Divider = Color3.fromRGB(55, 40, 40),
+        Track = Color3.fromRGB(70, 50, 50),
+        Toggle = Color3.fromRGB(220, 38, 38),
+        Slider = Color3.fromRGB(185, 28, 28),
+    },
+    Monokai = {
+        Name = "Monokai",
+        BG = Color3.fromRGB(25, 22, 34),
+        Sidebar = Color3.fromRGB(32, 28, 42),
+        TopBar = Color3.fromRGB(38, 34, 48),
+        Element = Color3.fromRGB(50, 48, 57),
+        ElementHover = Color3.fromRGB(62, 60, 68),
+        Text = Color3.fromRGB(252, 252, 250),
+        SubText = Color3.fromRGB(175, 175, 175),
+        Accent = Color3.fromRGB(252, 152, 103),
+        AccentDim = Color3.fromRGB(180, 100, 60),
+        Divider = Color3.fromRGB(65, 60, 72),
+        Track = Color3.fromRGB(78, 72, 85),
+        Toggle = Color3.fromRGB(169, 220, 118),
+        Slider = Color3.fromRGB(252, 152, 103),
+    },
+}
+
+local function ApplyTheme(ThemeName)
+    local T = Themes[ThemeName]
+    if not T then return end
+    C.BG = T.BG
+    C.Sidebar = T.Sidebar
+    C.TopBar = T.TopBar
+    C.Element = T.Element
+    C.ElementHover = T.ElementHover
+    C.Text = T.Text
+    C.SubText = T.SubText
+    C.Accent = T.Accent
+    C.AccentDim = T.AccentDim
+    C.Divider = T.Divider
+    C.Track = T.Track
+end
+
+local function GradientStops(Stops, Rotation)
+    local ColorKPs = {}
+    local TransKPs = {}
+    for Pos, Stop in pairs(Stops) do
+        local P = math.clamp(tonumber(Pos) / 100, 0, 1)
+        table.insert(ColorKPs, ColorSequenceKeypoint.new(P, Stop.Color))
+        table.insert(TransKPs, NumberSequenceKeypoint.new(P, Stop.Transparency or 0))
+    end
+    table.sort(ColorKPs, function(a, b) return a.Time < b.Time end)
+    table.sort(TransKPs, function(a, b) return a.Time < b.Time end)
+    if #ColorKPs < 2 then
+        table.insert(ColorKPs, ColorSequenceKeypoint.new(1, ColorKPs[1].Value))
+        table.insert(TransKPs, NumberSequenceKeypoint.new(1, TransKPs[1].Value))
+    end
+    return {
+        Color = ColorSequence.new(ColorKPs),
+        Transparency = NumberSequence.new(TransKPs),
+        Rotation = Rotation or 0,
+    }
+end
+
 local Library = {}
 Library.Elements = {}
 Library.Icons = Icons
+Library.Themes = Themes
+Library.CurrentTheme = "Dark"
+
+Library.SetTheme = function(_, ThemeName)
+    if Themes[ThemeName] then
+        Library.CurrentTheme = ThemeName
+        ApplyTheme(ThemeName)
+    end
+end
+
+Library.Gradient = function(_, Stops, Rotation)
+    return GradientStops(Stops, Rotation)
+end
+
+local NotifGui, NotifHolder, NotifCount = nil, nil, 0
+
+local function EnsureNotifGui(Parent)
+    if NotifGui then return end
+    NotifGui = New("ScreenGui", {
+        Name = "LolLib/Notifications",
+        Parent = Parent,
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = 10000,
+    })
+    NotifHolder = New("Frame", {
+        Name = "Holder",
+        Parent = NotifGui,
+        Size = UDim2.new(0, 320, 1, -60),
+        Position = UDim2.new(1, -16, 0, 56),
+        AnchorPoint = Vector2.new(1, 0),
+        BackgroundTransparency = 1,
+    }, {
+        New("UIListLayout", {
+            HorizontalAlignment = Enum.HorizontalAlignment.Right,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            VerticalAlignment = Enum.VerticalAlignment.Top,
+            Padding = UDim.new(0, 8),
+        }),
+        New("UIPadding", { PaddingTop = UDim.new(0, 4) }),
+    })
+end
+
+Library.Notify = function(_, Config)
+    Config = Config or {}
+    EnsureNotifGui(Config.Parent or CoreGui)
+    NotifCount = NotifCount + 1
+
+    local Title = Config.Title or "Notification"
+    local Content = Config.Content or ""
+    local Duration = Config.Duration or 5
+    local Icon = Config.Icon or ""
+
+    local Container = New("Frame", {
+        Name = "NotifContainer",
+        Parent = NotifHolder,
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        LayoutOrder = NotifCount,
+    })
+
+    local Main = New("Frame", {
+        Name = "Main",
+        Parent = Container,
+        Size = UDim2.new(1, 0, 0, 0),
+        Position = UDim2.new(1.5, 0, 0, 0),
+        BackgroundColor3 = C.TopBar,
+        BorderSizePixel = 0,
+        AutomaticSize = Enum.AutomaticSize.Y,
+    }, {
+        New("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        New("UIStroke", { Color = C.AccentDim, Thickness = 1, Transparency = 0.5 }),
+        New("UIPadding", {
+            PaddingTop = UDim.new(0, 10),
+            PaddingBottom = UDim.new(0, 10),
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12),
+        }),
+        New("UIListLayout", {
+            Padding = UDim.new(0, 4),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+        }),
+    })
+
+    local TitleLabel = New("TextLabel", {
+        Name = "Title",
+        Parent = Main,
+        Size = UDim2.new(1, Icon ~= "" and -30 or 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Font = FONT,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextColor3 = C.Text,
+        Text = Title,
+        RichText = true,
+        LayoutOrder = 1,
+    })
+
+    if Icon ~= "" then
+        New("ImageLabel", {
+            Name = "Icon",
+            Parent = Main,
+            Size = UDim2.new(0, 20, 0, 20),
+            Position = UDim2.new(1, -20, 0, 10),
+            AnchorPoint = Vector2.new(1, 0),
+            BackgroundTransparency = 1,
+            Image = Icons.Resolve(Icon) or Icon,
+            LayoutOrder = 0,
+        })
+    end
+
+    if Content ~= "" then
+        New("TextLabel", {
+            Name = "Content",
+            Parent = Main,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            BackgroundTransparency = 1,
+            Font = FONT,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextWrapped = true,
+            TextColor3 = C.SubText,
+            Text = Content,
+            RichText = true,
+            LayoutOrder = 2,
+        })
+    end
+
+    local DurationBar = New("Frame", {
+        Name = "DurationBar",
+        Parent = Main,
+        Size = UDim2.new(1, 0, 0, 2),
+        Position = UDim2.new(0, 0, 1, -2),
+        BackgroundColor3 = C.Accent,
+        BorderSizePixel = 0,
+        LayoutOrder = 3,
+    }, {
+        New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+    })
+
+    task.spawn(function()
+        task.wait()
+        Tween(Main, { Position = UDim2.new(0, 0, 0, 0) }, 0.35)
+        Tween(Container, { Size = UDim2.new(1, 0, 0, Main.AbsoluteSize.Y) }, 0.35)
+        Tween(DurationBar, { Size = UDim2.new(0, 0, 0, 2) }, Duration)
+        task.wait(Duration + 0.1)
+        Tween(Main, { Position = UDim2.new(1.5, 0, 0, 0) }, 0.35)
+        task.wait(0.35)
+        Container:Destroy()
+    end)
+
+    return {
+        Close = function()
+            Tween(Main, { Position = UDim2.new(1.5, 0, 0, 0) }, 0.35)
+            task.wait(0.35)
+            Container:Destroy()
+        end,
+    }
+end
+
+Library.Popup = function(_, Config)
+    Config = Config or {}
+    local Title = Config.Title or "Confirm"
+    local Content = Config.Content or ""
+    local Icon = Config.Icon or ""
+    local Buttons = Config.Buttons or {}
+    local OnButton = Config.Callback
+
+    local PopupGui = New("ScreenGui", {
+        Name = "LolLib/Popup",
+        Parent = Config.Parent or CoreGui,
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = 10001,
+    })
+
+    New("Frame", {
+        Name = "Overlay",
+        Parent = PopupGui,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BackgroundTransparency = 0.5,
+    })
+
+    local PopupFrame = New("Frame", {
+        Name = "Popup",
+        Parent = PopupGui,
+        Size = UDim2.fromOffset(380, 0),
+        Position = UDim2.new(0.5, -190, 0.5, -100),
+        BackgroundColor3 = C.Sidebar,
+        BorderSizePixel = 0,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        ClipsDescendants = true,
+    }, {
+        New("UICorner", { CornerRadius = UDim.new(0, 10) }),
+        New("UIStroke", { Color = C.AccentDim, Thickness = 1, Transparency = 0.5 }),
+        New("UIPadding", {
+            PaddingTop = UDim.new(0, 20),
+            PaddingBottom = UDim.new(0, 20),
+            PaddingLeft = UDim.new(0, 20),
+            PaddingRight = UDim.new(0, 20),
+        }),
+        New("UIListLayout", {
+            Padding = UDim.new(0, 10),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+        }),
+    })
+
+    if Icon ~= "" then
+        New("ImageLabel", {
+            Name = "Icon",
+            Parent = PopupFrame,
+            Size = UDim2.new(0, 36, 0, 36),
+            BackgroundTransparency = 1,
+            Image = Icons.Resolve(Icon) or Icon,
+            ImageColor3 = C.Accent,
+            LayoutOrder = 1,
+        })
+    end
+
+    New("TextLabel", {
+        Name = "Title",
+        Parent = PopupFrame,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Font = FONT,
+        TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextColor3 = C.Text,
+        Text = Title,
+        RichText = true,
+        LayoutOrder = 2,
+    })
+
+    if Content ~= "" then
+        New("TextLabel", {
+            Name = "Content",
+            Parent = PopupFrame,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            BackgroundTransparency = 1,
+            Font = FONT,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextWrapped = true,
+            TextColor3 = C.SubText,
+            Text = Content,
+            LayoutOrder = 3,
+        })
+    end
+
+    local BtnContainer = New("Frame", {
+        Name = "Buttons",
+        Parent = PopupFrame,
+        Size = UDim2.new(1, 0, 0, 32),
+        BackgroundTransparency = 1,
+        LayoutOrder = 4,
+    }, {
+        New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Right,
+            Padding = UDim.new(0, 8),
+        }),
+    })
+
+    for _, BtnConf in ipairs(Buttons) do
+        local IsPrimary = BtnConf.Variant == "Primary"
+        local Btn = New("TextButton", {
+            Name = "Btn",
+            Parent = BtnContainer,
+            Size = UDim2.new(0, #Buttons > 1 and 100 or 140, 0, 32),
+            BackgroundColor3 = IsPrimary and C.Accent or C.Element,
+            BorderSizePixel = 0,
+            AutoButtonColor = false,
+            Font = FONT,
+            TextSize = 13,
+            TextColor3 = C.Text,
+            Text = BtnConf.Name or "OK",
+        }, {
+            New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+        })
+        Btn.MouseButton1Click:Connect(function()
+            if BtnConf.Callback then pcall(BtnConf.Callback) end
+            if OnButton then pcall(OnButton, BtnConf.Name) end
+            PopupGui:Destroy()
+        end)
+        Btn.MouseEnter:Connect(function()
+            Tween(Btn, { BackgroundColor3 = IsPrimary and C.AccentDim or C.ElementHover }, 0.1)
+        end)
+        Btn.MouseLeave:Connect(function()
+            Tween(Btn, { BackgroundColor3 = IsPrimary and C.Accent or C.Element }, 0.1)
+        end)
+    end
+
+    return PopupFrame
+end
 
 Library.AddIcons = function(_, Pack, Map)
     Icons.AddIcons(Pack, Map)
@@ -13,6 +629,11 @@ Library.CreateWindow = function(_, Options)
     local Parent     = Options.Parent or CoreGui
     local AutoSave   = Options.AutoSave
     local AutoShow   = Options.AutoShow
+    local Size       = Options.Size or UDim2.fromOffset(560, 430)
+    local Background = Options.Background
+    local User       = Options.User
+    local OpenButton = Options.OpenButton
+    local SearchBar  = Options.SearchBar ~= false
 
     local ConfigData = (AutoSave and LoadConfigData()) or {}
 
@@ -32,8 +653,8 @@ Library.CreateWindow = function(_, Options)
     local Main = New("Frame", {
         Name             = "MainWindow",
         Parent           = ScreenGui,
-        Size             = UDim2.fromOffset(560, 430),
-        Position         = UDim2.new(0.5, -280, 0.5, -215),
+        Size             = Size,
+        Position         = UDim2.new(0.5, -Size.X.Offset / 2, 0.5, -Size.Y.Offset / 2),
         BackgroundColor3 = C.BG,
         BorderSizePixel  = 0,
         Active           = true,
@@ -42,6 +663,93 @@ Library.CreateWindow = function(_, Options)
         New("UICorner", { CornerRadius = UDim.new(0, 6) }),
         New("UIStroke", { Color = C.AccentDim, Thickness = 1, Transparency = 0.6 })
     })
+
+    if Background then
+        if type(Background) == "string" and (Background:find("video") or Background:find("webm") or Background:find("mp4")) then
+            local VideoUrl = Background:match("video:(.+)")
+            if VideoUrl then
+                local Vid = New("VideoFrame", {
+                    Name = "BackgroundVideo",
+                    Parent = Main,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    BackgroundTransparency = 1,
+                    Video = VideoUrl,
+                    Looping = true,
+                    Playing = true,
+                    Volume = 0,
+                }, {
+                    New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+                })
+                task.spawn(function()
+                    Vid.Loaded:Wait()
+                    Vid.Playing = true
+                end)
+            end
+        else
+            New("ImageLabel", {
+                Name = "Background",
+                Parent = Main,
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Image = Background,
+                ScaleType = Enum.ScaleType.Crop,
+                ImageTransparency = 0.9,
+                ZIndex = 0,
+            }, {
+                New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+            })
+        end
+    end
+
+    if Options.Acrylic then
+        pcall(function()
+            local Blur = Instance.new("BlurEffect")
+            Blur.Name = "AcrylicBlur"
+            Blur.Size = 24
+            Blur.Parent = game:GetService("Lighting")
+            table.insert(Connections, {
+                Disconnect = function()
+                    Blur:Destroy()
+                end,
+            })
+        end)
+    end
+
+    local OpenBtn
+    if OpenButton and not AutoShow then
+        OpenBtn = New("TextButton", {
+            Name = "OpenButton",
+            Parent = Parent,
+            Size = UDim2.fromOffset(140, 36),
+            Position = UDim2.new(0, 16, 1, -56),
+            BackgroundColor3 = C.Accent,
+            BorderSizePixel = 0,
+            AutoButtonColor = false,
+            Font = FONT,
+            TextSize = 13,
+            TextColor3 = Color3.new(1, 1, 1),
+            Text = OpenButton.Title or "Open UI",
+            Visible = true,
+            ZIndex = 99999,
+        }, {
+            New("UICorner", { CornerRadius = OpenButton.CornerRadius or UDim.new(1, 0) }),
+            New("UIStroke", { Color = C.AccentDim, Thickness = OpenButton.StrokeThickness or 0, Transparency = 0.3 }),
+        })
+        if OpenButton.Color then
+            OpenBtn.BackgroundColor3 = OpenButton.Color
+        end
+        OpenBtn.MouseButton1Click:Connect(function()
+            ScreenGui.Enabled = true
+            Main.Visible = true
+            if OpenBtn then OpenBtn.Visible = false end
+        end)
+        OpenBtn.MouseEnter:Connect(function()
+            Tween(OpenBtn, { BackgroundColor3 = C.AccentDim }, 0.15)
+        end)
+        OpenBtn.MouseLeave:Connect(function()
+            Tween(OpenBtn, { BackgroundColor3 = OpenButton.Color or C.Accent }, 0.15)
+        end)
+    end
 
     local TopBar = New("Frame", {
         Name             = "TopBar",
@@ -119,6 +827,139 @@ Library.CreateWindow = function(_, Options)
     }, {
         New("UICorner", { CornerRadius = UDim.new(0, 6) })
     })
+
+    if User and User.Enabled then
+        local UserFrame = New("Frame", {
+            Name = "UserProfile",
+            Parent = Sidebar,
+            Size = UDim2.new(1, 0, 0, 48),
+            BackgroundTransparency = 1,
+            LayoutOrder = -100,
+        }, {
+            New("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 6) }),
+        })
+        local Avatar = New("ImageLabel", {
+            Name = "Avatar",
+            Parent = UserFrame,
+            Size = UDim2.new(0, 30, 0, 30),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundColor3 = C.Element,
+            BorderSizePixel = 0,
+            Image = User.Avatar or "",
+            ScaleType = Enum.ScaleType.Fit,
+        }, {
+            New("UICorner", { CornerRadius = UDim.new(1, 0) }),
+        })
+        if not User.Avatar or User.Avatar == "" then
+            New("TextLabel", {
+                Name = "Placeholder",
+                Parent = Avatar,
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Font = FONT,
+                TextSize = 14,
+                TextColor3 = C.Accent,
+                Text = User.Anonymous and "?" or string.sub(User.Name or "U", 1, 1),
+            })
+        end
+        local UserName = User.Name or (LocalPlayer and LocalPlayer.Name) or "User"
+        if User.Anonymous then UserName = "Anonymous" end
+        New("TextLabel", {
+            Name = "Name",
+            Parent = UserFrame,
+            Size = UDim2.new(1, -38, 0, 14),
+            Position = UDim2.new(0, 36, 0, 2),
+            BackgroundTransparency = 1,
+            Font = FONT,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextColor3 = C.Text,
+            Text = UserName,
+        })
+        New("TextLabel", {
+            Name = "Sub",
+            Parent = UserFrame,
+            Size = UDim2.new(1, -38, 0, 12),
+            Position = UDim2.new(0, 36, 0, 18),
+            BackgroundTransparency = 1,
+            Font = FONT,
+            TextSize = 10,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextColor3 = C.SubText,
+            Text = User.Subtitle or "Lol Lib",
+        })
+        if User.Callback then
+            local ClickArea = New("TextButton", {
+                Name = "Click",
+                Parent = UserFrame,
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Text = "",
+            })
+            ClickArea.MouseButton1Click:Connect(function()
+                pcall(User.Callback)
+            end)
+        end
+    end
+
+    local SearchBox
+    if SearchBar then
+        SearchBox = New("Frame", {
+            Name = "SearchBar",
+            Parent = Sidebar,
+            Size = UDim2.new(1, -16, 0, 28),
+            BackgroundColor3 = C.Element,
+            BorderSizePixel = 0,
+            LayoutOrder = -50,
+        }, {
+            New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+            New("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }),
+        })
+        New("ImageLabel", {
+            Name = "SearchIcon",
+            Parent = SearchBox,
+            Size = UDim2.new(0, 14, 0, 14),
+            Position = UDim2.new(0, 2, 0.5, -7),
+            BackgroundTransparency = 1,
+            Image = Icons.Resolve("lucide:search") or "",
+            ImageColor3 = C.SubText,
+        })
+        local SearchInput = New("TextBox", {
+            Name = "Input",
+            Parent = SearchBox,
+            Size = UDim2.new(1, -24, 1, 0),
+            Position = UDim2.new(0, 22, 0, 0),
+            BackgroundTransparency = 1,
+            Font = FONT,
+            TextSize = 12,
+            TextColor3 = C.Text,
+            PlaceholderColor3 = C.SubText,
+            PlaceholderText = "Search...",
+            ClearTextOnFocus = false,
+            Text = "",
+        })
+        SearchInput:GetPropertyChangedSignal("Text"):Connect(function()
+            local Query = SearchInput.Text:lower()
+            for _, Tab in ipairs(TabOrder) do
+                local Match = false
+                if Query == "" then
+                    Match = true
+                else
+                    if Tab.Name:lower():find(Query, 1, true) then
+                        Match = true
+                    end
+                    for _, El in ipairs(Tab.Elements or {}) do
+                        if El.Frame and El.Frame:FindFirstChild("Label") then
+                            if El.Frame.Label.Text:lower():find(Query, 1, true) then
+                                Match = true
+                            end
+                        end
+                    end
+                end
+                Tab.Button.Visible = Match
+            end
+        end)
+    end
 
     local TabList = New("ScrollingFrame", {
         Name             = "TabList",
@@ -1010,15 +1851,18 @@ Library.CreateWindow = function(_, Options)
     end
 
     MakeControl("—", C.SubText, function()
-        Main.Visible = not Main.Visible
-        if Main.Visible then Main.Position = UDim2.new(0.5, -280, 0.5, -215) end
+        Main.Visible = false
+        if OpenBtn then OpenBtn.Visible = true end
     end)
 
+    local Maximized = false
     MakeControl("□", C.SubText, function()
-        if Main.Size.Y.Offset > 460 then
-            Tween(Main, { Size = UDim2.fromOffset(560, 430) }, 0.15)
+        if Maximized then
+            Tween(Main, { Size = Size }, 0.15)
+            Maximized = false
         else
-            Tween(Main, { Size = UDim2.fromOffset(560, 620) }, 0.15)
+            Tween(Main, { Size = UDim2.fromOffset(Size.X.Offset, Size.Y.Offset + 190) }, 0.15)
+            Maximized = true
         end
     end)
 
@@ -1028,6 +1872,7 @@ Library.CreateWindow = function(_, Options)
 
     Window.Set = function(_, Visible)
         ScreenGui.Enabled = not not Visible
+        if OpenBtn then OpenBtn.Visible = not Visible end
     end
 
     Window.Flush = function()
@@ -1036,11 +1881,26 @@ Library.CreateWindow = function(_, Options)
         end
         Connections = {}
         pcall(function() ScreenGui:Destroy() end)
+        if OpenBtn then pcall(function() OpenBtn:Destroy() end) end
+        if NotifGui then pcall(function() NotifGui:Destroy() end) end
     end
 
     Window.Load = function()
         ScreenGui.Enabled = true
         Main.Visible = true
+        if OpenBtn then OpenBtn.Visible = false end
+    end
+
+    Window.Notify = function(_, NotifConfig)
+        NotifConfig = NotifConfig or {}
+        NotifConfig.Parent = Parent
+        Library:Notify(NotifConfig)
+    end
+
+    Window.Popup = function(_, PopupConfig)
+        PopupConfig = PopupConfig or {}
+        PopupConfig.Parent = Parent
+        Library:Popup(PopupConfig)
     end
 
     Window.SetTheme = function(_, Image, Opts)
